@@ -1,3 +1,13 @@
+# Xmake cache
+.xmake/
+bin/*
+!bin/assets
+build/
+vs*/
+
+# MacOS Cache
+.DS_Store
+
 # Prerequisites
 *.d
 
