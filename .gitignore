@@ -40,3 +40,14 @@ vs*/
 *.exe
 *.out
 *.app
+*.vsidx
+*.lock
+*.db
+*.db-shm
+*.db-wal
+*.opendb
+*.ipch
+*.sln
+*.vcxproj
+*.filters
+*.user
