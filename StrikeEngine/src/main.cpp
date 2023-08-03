@@ -1,16 +1,14 @@
 #include <iostream>
 
 #include "StrikeApp.hpp"
-#include "StrikeWindow.hpp"
+#include "OS.hpp"
 
 int main() {
 
-	StrikeApp app;
 	StrikeWindow window;
-	window.Init();
-	while (app.IsRunning())
-	{
-		window.ProcessWindowMessages();
+	// Window creation
+	if (!window.Create("01 - The Beginning")) {
+		return -1;
 	}
 	return 0;
 };
