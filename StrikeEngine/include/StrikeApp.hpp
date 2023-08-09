@@ -1,17 +1,20 @@
 #pragma once
 
-
-class StrikeApp
+namespace StrikeEngine
 {
-public:
-	StrikeApp();
+	class StrikeApp
+	{
+	public:
+		StrikeApp();
 
-	bool IsRunning() const;
-	static StrikeApp* Instance();
-	void OnQuit();
+		bool IsRunning() const;
+		static StrikeApp* Instance();
+		void OnQuit();
 
-private:
-	bool m_isRunning;
-	static StrikeApp* m_Instance;
-};
+	private:
+		bool m_isRunning;
+		static StrikeApp* m_Instance;
+	};
+
+}
 

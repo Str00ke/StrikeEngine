@@ -1,13 +1,25 @@
 #include <iostream>
 
 #include "StrikeApp.hpp"
+#include "StrikeRenderer.hpp"
 #include "OS.hpp"
 
 int main() {
 
-	StrikeWindow window;
+	StrikeEngine::StrikeWindow window;
+	StrikeEngine::StrikeRenderer rend;
 	// Window creation
-	if (!window.Create("01 - The Beginning")) {
+	if (!window.Create("Strike Test")) {
+		return -1;
+	}
+
+	if (!rend.InitVulkan())
+	{
+		return -1;
+	}
+
+	if (!window.RenderingLoop(rend))
+	{
 		return -1;
 	}
 	return 0;

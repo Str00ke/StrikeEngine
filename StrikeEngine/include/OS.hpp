@@ -1,8 +1,8 @@
 #pragma once
 
-#ifndef UNICODE
-#define UNICODE
-#endif
+//#ifndef UNICODE
+//#define UNICODE
+//#endif
 
 #ifndef OS_HEADER
 #define OS_HEADER
@@ -12,66 +12,70 @@
 #endif //Platform used
 #include <Windows.h>
 
-namespace OS 
+namespace StrikeEngine
 {
-	//Use library depend of OS type
+	namespace OS
+	{
+		//Use library depend of OS type
 
-//#ifdef VK_USE_PLATFORM_WIN32_KHR
-	typedef HMODULE LibraryHandle;
-//#endif
+	//#ifdef VK_USE_PLATFORM_WIN32_KHR
+		typedef HMODULE LibraryHandle;
+		//#endif
 
-	//Base class for basic Window operations
-	class Window 
+			//Base class for basic Window operations
+		class Window
+		{
+		public:
+			virtual bool OnWindowSizeChanged() = 0;
+			virtual bool Draw() = 0;
+
+			virtual bool ReadyToDraw() const final
+			{
+				return m_CanRender;
+			}
+
+			Window() :
+				m_CanRender(false) {}
+
+			virtual ~Window() {}
+
+		protected:
+			bool m_CanRender;
+		};
+
+
+		struct WindowParameters
+		{
+			//#ifdef VK_USE_PLATFORM_WIN32_KHR
+			HINSTANCE	Instance;
+			HWND		Handle;
+
+			WindowParameters() :
+				Instance(),
+				Handle()
+			{}
+			//#endif
+		};
+	}
+
+
+	class StrikeWindow
 	{
 	public:
-		virtual bool OnWindowSizeChanged() = 0;
-		virtual bool Draw() = 0;
+		StrikeWindow();
+		StrikeWindow(const StrikeWindow&) = delete;
+		StrikeWindow(StrikeWindow&&) = delete;
+		~StrikeWindow();
 
-		virtual bool ReadyToDraw() const final 
-		{
-			return m_CanRender;
-		}
+		bool Create(const char* title);
+		bool RenderingLoop(OS::Window& window) const;
+		OS::WindowParameters GetParams() const;
 
-		Window() : 
-			m_CanRender(false){}
+	private:
+		OS::WindowParameters m_params;
 
-		virtual ~Window() {}
-
-	protected:
-		bool m_CanRender;
 	};
 
-
-	struct WindowParameters
-	{
-//#ifdef VK_USE_PLATFORM_WIN32_KHR
-		HINSTANCE	Instance;
-		HWND		Handle;
-
-		WindowParameters() :
-			Instance(),
-			Handle()
-		{}
-//#endif
-	};
 }
-
-
-class StrikeWindow
-{
-public:
-	StrikeWindow();
-	StrikeWindow(const StrikeWindow&) = delete;
-	StrikeWindow(StrikeWindow&&) = delete;
-	~StrikeWindow();
-
-	bool Create(const char* title);
-	bool RenderingLoop(OS::Window& window) const;
-	OS::WindowParameters GetParams() const;
-
-private:
-	OS::WindowParameters m_params;
-	
-};
-
 //#endif //OS_HEADER
+
