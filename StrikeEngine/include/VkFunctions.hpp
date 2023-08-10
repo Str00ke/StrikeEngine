@@ -20,10 +20,9 @@
 #if !defined(VULKAN_FUNCTIONS_HEADER)
 #define VULKAN_FUNCTIONS_HEADER
 
-#define VK_NO_PROTOTYPES
-#include "vulkan/vulkan.h"
+//#include "vulkan/vulkan.h"
 
-//#include "../Externals/vulkan.h"
+#include "../Externals/vulkan.h"
 
 namespace StrikeEngine 
 {

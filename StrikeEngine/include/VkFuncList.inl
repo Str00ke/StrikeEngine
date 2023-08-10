@@ -66,7 +66,7 @@
 // ************************************************************ //
 
 #if !defined(VK_EXPORTED_FUNCTION)
-#define VK_EXPORTED_FUNCTION( func )
+#define VK_EXPORTED_FUNCTION( fun )
 #endif
 
 VK_EXPORTED_FUNCTION(vkGetInstanceProcAddr)
@@ -82,7 +82,7 @@ VK_EXPORTED_FUNCTION(vkGetInstanceProcAddr)
 // ************************************************************ //
 
 #if !defined(VK_GLOBAL_LEVEL_FUNCTION)
-#define VK_GLOBAL_LEVEL_FUNCTION( func )
+#define VK_GLOBAL_LEVEL_FUNCTION( fun )
 #endif
 
 // Tutorial 01
@@ -102,7 +102,7 @@ VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceExtensionProperties)
 // ************************************************************ //
 
 #if !defined(VK_INSTANCE_LEVEL_FUNCTION)
-#define VK_INSTANCE_LEVEL_FUNCTION( func )
+#define VK_INSTANCE_LEVEL_FUNCTION( fun )
 #endif
 
 // Tutorial 01
@@ -116,19 +116,22 @@ VK_INSTANCE_LEVEL_FUNCTION(vkDestroyInstance)
 
 // Tutorial 02
 VK_INSTANCE_LEVEL_FUNCTION(vkEnumerateDeviceExtensionProperties)
+
 #if defined(USE_SWAPCHAIN_EXTENSIONS)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceSupportKHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceFormatsKHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfacePresentModesKHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkDestroySurfaceKHR)
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkCreateWin32SurfaceKHR)
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-VK_INSTANCE_LEVEL_FUNCTION(vkCreateXcbSurfaceKHR)
-#elif defined(VK_USE_PLATFORM_XLIB_KHR)
-VK_INSTANCE_LEVEL_FUNCTION(vkCreateXlibSurfaceKHR)
-#endif
+
+//#if defined(VK_USE_PLATFORM_WIN32_KHR)
+//VK_INSTANCE_LEVEL_FUNCTION(vkCreateWin32SurfaceKHR)
+//#elif defined(VK_USE_PLATFORM_XCB_KHR)
+//VK_INSTANCE_LEVEL_FUNCTION(vkCreateXcbSurfaceKHR)
+//#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+//VK_INSTANCE_LEVEL_FUNCTION(vkCreateXlibSurfaceKHR)
+//#endif
 #endif
 
 // Tutorial 04
@@ -144,7 +147,7 @@ VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceMemoryProperties)
 // ************************************************************ //
 
 #if !defined(VK_DEVICE_LEVEL_FUNCTION)
-#define VK_DEVICE_LEVEL_FUNCTION( func )
+#define VK_DEVICE_LEVEL_FUNCTION( fun )
 #endif
 
 // Tutorial 01

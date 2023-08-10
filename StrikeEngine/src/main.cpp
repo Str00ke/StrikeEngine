@@ -7,13 +7,23 @@
 int main() {
 
 	StrikeEngine::StrikeWindow window;
-	StrikeEngine::StrikeRenderer rend;
+	StrikeEngine::StrikeRenderer rend(&window);
 	// Window creation
 	if (!window.Create("Strike Test")) {
 		return -1;
 	}
 
 	if (!rend.InitVulkan())
+	{
+		return -1;
+	}
+
+	if(!rend.CreateSwapChain())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateCommandBuffers())
 	{
 		return -1;
 	}

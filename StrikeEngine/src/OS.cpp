@@ -187,8 +187,8 @@ namespace StrikeEngine
 		RECT rc = { 0,0,1024,768 };
 		AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, false);
 
-		m_params.Handle = CreateWindowEx( //More info: https://learn.microsoft.com/fr-fr/windows/win32/api/winuser/nf-winuser-createwindowexa
-			NULL,									// Optional window styles.
+		m_params.Handle = CreateWindow( //More info: https://learn.microsoft.com/fr-fr/windows/win32/api/winuser/nf-winuser-createwindowexa
+			//NULL,									// Optional window styles.
 			ENGINE_NAME,					// Window class
 			title,							// Window text
 			WS_VISIBLE | WS_OVERLAPPEDWINDOW,		// Window style
