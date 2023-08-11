@@ -18,12 +18,32 @@ int main() {
 		return -1;
 	}
 
-	if(!rend.CreateSwapChain())
+	if(!rend.CreateRenderPass())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateFrameBuffers())
+	{
+		return -1;
+	}
+
+	if (!rend.CreatePipeline())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateSemaphores())
 	{
 		return -1;
 	}
 
 	if (!rend.CreateCommandBuffers())
+	{
+		return -1;
+	}
+
+	if (!rend.RecordCommandBuffers())
 	{
 		return -1;
 	}

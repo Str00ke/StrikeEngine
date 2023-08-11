@@ -14,20 +14,88 @@ namespace StrikeEngine
 
 	StrikeRenderer::~StrikeRenderer()
 	{
+		//--ChildClear
 		if (Vulkan.Device != VK_NULL_HANDLE)
 		{
 			vkDeviceWaitIdle(Vulkan.Device);
+
+			if ((Vulkan.GraphicsQueueCmdBuffers.size() > 0) && (Vulkan.GraphicsQueueCmdBuffers[0] != VK_NULL_HANDLE))
+			{
+				vkFreeCommandBuffers(Vulkan.Device, Vulkan.GraphicsQueueCmdPool, static_cast<uint32_t>(Vulkan.GraphicsQueueCmdBuffers.size()), Vulkan.GraphicsQueueCmdBuffers.data());
+				Vulkan.GraphicsQueueCmdBuffers.clear();
+			}
+
+			if (Vulkan.GraphicsQueueCmdPool != VK_NULL_HANDLE)
+			{
+				vkDestroyCommandPool(Vulkan.Device, Vulkan.GraphicsQueueCmdPool, nullptr);
+				Vulkan.GraphicsQueueCmdBuffers.clear();
+			}
+
+			if (Vulkan.GraphicsPipeline != VK_NULL_HANDLE)
+			{
+				vkDestroyPipeline(Vulkan.Device, Vulkan.GraphicsPipeline, nullptr);
+				Vulkan.GraphicsPipeline = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.RenderPass != VK_NULL_HANDLE)
+			{
+				vkDestroyRenderPass(Vulkan.Device, Vulkan.RenderPass, nullptr);
+				Vulkan.RenderPass = VK_NULL_HANDLE;
+			}
+
+			for (size_t i = 0; i < Vulkan.FrameBuffers.size(); ++i)
+			{
+				if (Vulkan.FrameBuffers[i] != VK_NULL_HANDLE)
+				{
+					vkDestroyFramebuffer(Vulkan.Device, Vulkan.FrameBuffers[i], nullptr);
+					Vulkan.FrameBuffers[i] = VK_NULL_HANDLE;
+				}
+			}
+			Vulkan.FrameBuffers.clear();
+		}
+		//--
+
+		if (Vulkan.Device != VK_NULL_HANDLE)
+		{
+			vkDeviceWaitIdle(Vulkan.Device);
+
+			if (Vulkan.ImageAvailableSemaphore != VK_NULL_HANDLE)
+				vkDestroySemaphore(Vulkan.Device, Vulkan.ImageAvailableSemaphore, nullptr);
+		
+			if(Vulkan.RenderingFinishedSemaphore != VK_NULL_HANDLE)
+				vkDestroySemaphore(Vulkan.Device, Vulkan.RenderingFinishedSemaphore, nullptr);
+
+			for (size_t i = 0; i < Vulkan.SwapChain.Images.size(); ++i)
+				if (Vulkan.SwapChain.Images[i].View != VK_NULL_HANDLE)
+					vkDestroyImageView(Vulkan.Device, Vulkan.SwapChain.Images[i].View, nullptr);
+
+
+			if (Vulkan.SwapChain.Handle != VK_NULL_HANDLE)
+				vkDestroySwapchainKHR(Vulkan.Device, Vulkan.SwapChain.Handle, nullptr);
+
 			vkDestroyDevice(Vulkan.Device, nullptr);
 		}
+
+		if (Vulkan.PresentationSurface != VK_NULL_HANDLE)
+			vkDestroySurfaceKHR(Vulkan.Instance, Vulkan.PresentationSurface, nullptr);
 
 		if (Vulkan.Instance != VK_NULL_HANDLE)
 			vkDestroyInstance(Vulkan.Instance, nullptr);
 
 		if (VulkanLib)
-		{
 			FreeLibrary(VulkanLib);
-		}
+
 	}
+
+// 	void StrikeRenderer::ChildClear()
+// 	{
+// 
+// 	}
+// 
+// 	void StrikeRenderer::ChildOnWindowSizeChanged()
+// 	{
+// 
+// 	}
 
 	bool StrikeRenderer::LoadVulkan()
 	{
@@ -44,9 +112,8 @@ namespace StrikeEngine
 		return true;
 	}
 
-	bool StrikeRenderer::InitVulkan(/*OS::WindowParameters params*/)
+	bool StrikeRenderer::InitVulkan()
 	{
-		//Window = params;
 
 		if (!LoadVulkan()) return false;
 
@@ -66,7 +133,7 @@ namespace StrikeEngine
 
 		if (!GetDeviceQueue()) return false;
 
-		if (!CreateSemaphores()) return false;
+		if (!CreateSwapChain()) return false;
 
 
 		return true;
@@ -74,7 +141,73 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::OnWindowSizeChanged()
 	{
-		return true;
+		if (Vulkan.Device != VK_NULL_HANDLE)
+			vkDeviceWaitIdle(Vulkan.Device);
+
+		//--ChildClear
+		if (Vulkan.Device != VK_NULL_HANDLE)
+		{
+			vkDeviceWaitIdle(Vulkan.Device);
+
+			if ((Vulkan.GraphicsQueueCmdBuffers.size() > 0) && (Vulkan.GraphicsQueueCmdBuffers[0] != VK_NULL_HANDLE))
+			{
+				vkFreeCommandBuffers(Vulkan.Device, Vulkan.GraphicsQueueCmdPool, static_cast<uint32_t>(Vulkan.GraphicsQueueCmdBuffers.size()), Vulkan.GraphicsQueueCmdBuffers.data());
+				Vulkan.GraphicsQueueCmdBuffers.clear();
+			}
+
+			if (Vulkan.GraphicsQueueCmdPool != VK_NULL_HANDLE)
+			{
+				vkDestroyCommandPool(Vulkan.Device, Vulkan.GraphicsQueueCmdPool, nullptr);
+				Vulkan.GraphicsQueueCmdBuffers.clear();
+			}
+
+			if (Vulkan.GraphicsPipeline != VK_NULL_HANDLE)
+			{
+				vkDestroyPipeline(Vulkan.Device, Vulkan.GraphicsPipeline, nullptr);
+				Vulkan.GraphicsPipeline = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.RenderPass != VK_NULL_HANDLE)
+			{
+				vkDestroyRenderPass(Vulkan.Device, Vulkan.RenderPass, nullptr);
+				Vulkan.RenderPass = VK_NULL_HANDLE;
+			}
+
+			for (size_t i = 0; i < Vulkan.FrameBuffers.size(); ++i)
+			{
+				if (Vulkan.FrameBuffers[i] != VK_NULL_HANDLE)
+				{
+					vkDestroyFramebuffer(Vulkan.Device, Vulkan.FrameBuffers[i], nullptr);
+					Vulkan.FrameBuffers[i] = VK_NULL_HANDLE;
+				}
+			}
+			Vulkan.FrameBuffers.clear();
+		}
+		//--
+
+		if (CreateSwapChain())
+		{
+			if (m_CanRender)
+			{
+				//--ChildOnwindowSizeChanged
+				if (!CreateRenderPass())
+					return false;
+
+				if (!CreateFrameBuffers())
+					return false;
+
+				if (!CreatePipeline())
+					return false;
+
+				if (!CreateCommandBuffers())
+					return false;
+
+				if (!RecordCommandBuffers())
+					return false;
+				//--
+			}
+			return true;
+		}
 	}
 
 	bool StrikeRenderer::LoadExportedEntryPoints()
@@ -510,185 +643,33 @@ namespace StrikeEngine
 		std::cout << "Could not create presentation surface" << std::endl;
 	}
 
-	bool StrikeRenderer::Draw()
+	bool StrikeRenderer::GetDeviceQueue()
 	{
-		uint32_t imageIndex;
-		VkResult res = vkAcquireNextImageKHR(Vulkan.Device, Vulkan.SwapChain.Handle, UINT64_MAX, Vulkan.ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-	
-		switch (res)
-		{
-		case VK_SUCCESS:
-		case VK_SUBOPTIMAL_KHR:
-			break;
-		case VK_ERROR_OUT_OF_DATE_KHR:
-			return OnWindowSizeChanged();
-		default:
-			std::cout << "Problem occured during swap chain image acquisition" << std::endl;
-			return false;
-		}
-
-		VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		VkSubmitInfo submitInfo =
-		{
-			VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			nullptr,
-			1,
-			&Vulkan.ImageAvailableSemaphore,
-			&waitDstStageMask,
-			1,
-			&Vulkan.PresentQueueCmdBuffers[imageIndex],
-			1,
-			&Vulkan.RenderingFinishedSemaphore
-		};
-
-		if (vkQueueSubmit(Vulkan.PresentQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
-			return false;
-
-		VkPresentInfoKHR presentInfo =
-		{
-			VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-			nullptr,
-			1,
-			&Vulkan.RenderingFinishedSemaphore,
-			1,
-			&Vulkan.SwapChain.Handle,
-			&imageIndex,
-			nullptr
-		};
-
-		res = vkQueuePresentKHR(Vulkan.PresentQueue.Handle, &presentInfo);
-
-		switch (res)
-		{
-		case VK_SUCCESS:
-			break;
-		case VK_ERROR_OUT_OF_DATE_KHR:
-		case VK_SUBOPTIMAL_KHR:
-			return OnWindowSizeChanged();
-		default:
-			std::cout << "Problem occurred during image presentation" << std::endl;
-			return false;
-		}
-
+		vkGetDeviceQueue(Vulkan.Device, Vulkan.GraphicsQueue.FamilyIndex, 0, &Vulkan.GraphicsQueue.Handle);
+		vkGetDeviceQueue(Vulkan.Device, Vulkan.PresentQueue.FamilyIndex, 0, &Vulkan.PresentQueue.Handle);
 		return true;
 	}
 
-	bool StrikeRenderer::CreateSemaphores()
+	bool StrikeRenderer::Clear()
 	{
-		VkSemaphoreCreateInfo semaphoreCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-			nullptr,
-			0
-		};
-
-		if ((vkCreateSemaphore(Vulkan.Device, &semaphoreCreateInfo, nullptr, &Vulkan.ImageAvailableSemaphore) != VK_SUCCESS) ||
-			(vkCreateSemaphore(Vulkan.Device, &semaphoreCreateInfo, nullptr, &Vulkan.RenderingFinishedSemaphore) != VK_SUCCESS))
-		{
-			std::cout << "Could not create semaphores" << std::endl;
-			return false;
-		}
-		return true;
-	}
-
-
-	bool StrikeRenderer::CreateSwapChain()
-	{
-		m_CanRender = false;
-
 		if (Vulkan.Device != VK_NULL_HANDLE)
 			vkDeviceWaitIdle(Vulkan.Device);
 
-		VkSurfaceCapabilitiesKHR surfaceCapabilities;
-		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &surfaceCapabilities) != VK_SUCCESS)
+		if ((Vulkan.PresentQueueCmdBuffers.size() > 0) && Vulkan.PresentQueueCmdBuffers[0] != VK_NULL_HANDLE)
 		{
-			std::cout << "Could not check presentation surface capabilities" << std::endl;
-			return false;
+			vkFreeCommandBuffers(Vulkan.Device, Vulkan.PresentQueueCmdPool, static_cast<uint32_t>(Vulkan.PresentQueueCmdBuffers.size()), &Vulkan.PresentQueueCmdBuffers[0]);
+			Vulkan.PresentQueueCmdBuffers.clear();
 		}
 
-		uint32_t formatsCount;
-		if ((vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &formatsCount, nullptr) != VK_SUCCESS) || (formatsCount == 0))
+		if (Vulkan.PresentQueueCmdPool != VK_NULL_HANDLE)
 		{
-			std::cout << "Error occured during presentation surface formats enumeration" << std::endl;
-			return false;
+			vkDestroyCommandPool(Vulkan.Device, Vulkan.PresentQueueCmdPool, nullptr);
+			Vulkan.PresentQueueCmdPool = VK_NULL_HANDLE;
 		}
-
-		std::vector<VkSurfaceFormatKHR> surfaceFormats(formatsCount);
-		if (vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &formatsCount, surfaceFormats.data()) != VK_SUCCESS)
-		{
-			std::cout << "Error occured during presentation surface formats enumeration" << std::endl;
-			return false;
-		}
-
-		uint32_t presentModesCount;
-		if ((vkGetPhysicalDeviceSurfacePresentModesKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &presentModesCount, nullptr) != VK_SUCCESS) || (presentModesCount == 0))
-		{
-			std::cout << "Error occured during presentation surface present modes enumeration" << std::endl;
-			return false;
-		}
-
-		std::vector<VkPresentModeKHR> presentModes(presentModesCount);
-		if ((vkGetPhysicalDeviceSurfacePresentModesKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &presentModesCount, presentModes.data()) != VK_SUCCESS))
-		{
-			std::cout << "Error occured during presentation surface formats enumeration" << std::endl;
-			return false;
-		}
-
-		uint32_t desiredNumberOfImages = GetSwapChainNumImages(surfaceCapabilities);
-		VkSurfaceFormatKHR desiredFormat = GetSwapChainFormat(surfaceFormats);
-		VkExtent2D desiredExtent = GetSwapChainExtent(surfaceCapabilities);
-		VkImageUsageFlags desiredUsage = GetSwapChainUsageFlags(surfaceCapabilities);
-		VkSurfaceTransformFlagBitsKHR desiredTransform = GetSwapChainTransform(surfaceCapabilities);
-		VkPresentModeKHR desiredPresentMode = GetSwapChainPresentMode(presentModes);
-		VkSwapchainKHR oldSwapChain = Vulkan.SwapChain.Handle;
-
-		if (static_cast<int>(desiredUsage) == -1)
-			return false;
-
-		if (static_cast<int>(desiredPresentMode) == -1)
-			return false;
-
-		if ((desiredExtent.width == 0) || (desiredExtent.height == 0)) {
-			//If size null, don't render anything, don't create swap chain, but don't kill app (window may be minimized)
-			return true;
-		}
-
-		VkSwapchainCreateInfoKHR swapChainCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-			nullptr,
-			0,
-			Vulkan.PresentationSurface,
-			desiredNumberOfImages,
-			desiredFormat.format,
-			desiredFormat.colorSpace,
-			desiredExtent,
-			1,
-			desiredUsage,
-			VK_SHARING_MODE_EXCLUSIVE,
-			0,
-			nullptr,
-			desiredTransform,
-			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-			desiredPresentMode,
-			VK_TRUE,
-			oldSwapChain
-		};
-
-		if (vkCreateSwapchainKHR(Vulkan.Device, &swapChainCreateInfo, nullptr, &Vulkan.SwapChain.Handle) != VK_SUCCESS)
-		{
-			std::cout << "Could not create swap chain" << std::endl;
-			return false;
-		}
-
-		if (oldSwapChain != VK_NULL_HANDLE)
-			vkDestroySwapchainKHR(Vulkan.Device, oldSwapChain, nullptr);
-
-		m_CanRender = true;
 
 		return true;
 	}
-
+	
 	uint32_t StrikeRenderer::GetSwapChainNumImages(VkSurfaceCapabilitiesKHR& surfaceCapabilities)
 	{
 		uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
@@ -788,16 +769,350 @@ namespace StrikeEngine
 		std::cout << "FIFO present mode is not supported by the swap chain" << std::endl;
 		return static_cast<VkPresentModeKHR>(-1);
 	}
-
-	bool StrikeRenderer::GetDeviceQueue()
+	
+	bool StrikeRenderer::CreateRenderPass()
 	{
-		vkGetDeviceQueue(Vulkan.Device, Vulkan.GraphicsQueue.FamilyIndex, 0, &Vulkan.GraphicsQueue.Handle);
-		vkGetDeviceQueue(Vulkan.Device, Vulkan.PresentQueue.FamilyIndex, 0, &Vulkan.PresentQueue.Handle);
+		VkAttachmentDescription attachmentDesc =
+		{
+			0,
+			Vulkan.SwapChain.Format,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+		};
+
+		VkAttachmentReference colorAttachmentReferences[] =
+		{
+			{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }
+		};
+
+		VkSubpassDescription subpassDesc =
+		{
+			0,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			0,
+			nullptr,
+			1,
+			colorAttachmentReferences,
+			nullptr,
+			nullptr,
+			0,
+			nullptr
+		};
+
+		VkRenderPassCreateInfo renderPassCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			&attachmentDesc,
+			1,
+			&subpassDesc,
+			0,
+			nullptr
+		};
+
+		if (vkCreateRenderPass(Vulkan.Device, &renderPassCreateInfo, nullptr, &Vulkan.RenderPass) != VK_SUCCESS)
+		{
+			std::cout << "Could not create render pass" << std::endl;
+			return false;
+		}
+
+		return true;
+		
+	}
+
+	bool StrikeRenderer::CreateFrameBuffers()
+	{
+		const std::vector<ImageParameters>& swapChainImages = Vulkan.SwapChain.Images;
+		Vulkan.FrameBuffers.resize(swapChainImages.size());
+
+		for (size_t i = 0; i < swapChainImages.size(); ++i)
+		{
+			VkFramebufferCreateInfo frameBufferCreateInfo =
+			{
+				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+				nullptr,
+				0,
+				Vulkan.RenderPass,
+				1,
+				&swapChainImages[i].View,
+				300,
+				300,
+				1
+			};
+
+			if (vkCreateFramebuffer(Vulkan.Device, &frameBufferCreateInfo, nullptr, &Vulkan.FrameBuffers[i]) != VK_SUCCESS)
+			{
+				std::cout << "Could not create a framebuffer" << std::endl;
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> StrikeRenderer::CreateShaderModule(const char* filename)
+	{
+		const std::vector<char> code = Tools::GetBinaryFileContents(filename);
+		if (code.size() == 0)
+			return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>();
+
+		VkShaderModuleCreateInfo shaderModuleCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+			nullptr,
+			0,
+			code.size(),
+			reinterpret_cast<const uint32_t*>(&code[0])
+		};
+
+		VkShaderModule shaderModule;
+		if (vkCreateShaderModule(Vulkan.Device, &shaderModuleCreateInfo, nullptr, &shaderModule) != VK_SUCCESS)
+		{
+			std::cout << "Could not create shader module from a " << filename << " file" << std::endl;
+			return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>();
+		}
+
+		return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>(shaderModule, vkDestroyShaderModule, Vulkan.Device);
+	}
+
+	Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout> StrikeRenderer::CreatePipelineLayout()
+	{
+		VkPipelineLayoutCreateInfo layoutCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			0,
+			nullptr,
+			0,
+			nullptr
+		};
+
+		VkPipelineLayout pipelineLayout;
+		if (vkCreatePipelineLayout(Vulkan.Device, &layoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+		{
+			std::cout << "Could not create pipeline layout" << std::endl;
+			return Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout>();
+		}
+
+		return Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout>(pipelineLayout, vkDestroyPipelineLayout, Vulkan.Device);
+	}
+
+	bool StrikeRenderer::CreatePipeline()
+	{
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> vertexShaderModule = CreateShaderModule("../Data/vert.spv");
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> fragmentShaderModule = CreateShaderModule("../Data/frag.spv");
+
+		if (!vertexShaderModule || !fragmentShaderModule)
+			return false;
+
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo =
+		{
+			//Vertex shader
+			{
+				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				nullptr,
+				0,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				vertexShaderModule.Get(),
+				"main",
+				nullptr
+			},
+
+			//Fragment shader
+			{
+				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				nullptr,
+				0,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				fragmentShaderModule.Get(),
+				"main",
+				nullptr
+			}
+		};
+
+
+		VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			0,
+			nullptr,
+			0,
+			nullptr
+		};
+
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			VK_FALSE
+		};
+
+		VkViewport viewport =
+		{
+			0.0f,
+			0.0f,
+			300.0f,
+			300.0f,
+			0.0f,
+			1.0f,
+		};
+
+		VkRect2D scissor =
+		{
+			{ 0, 0 },
+			{ 300, 300 }
+		};
+
+		VkPipelineViewportStateCreateInfo viewportStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			&viewport,
+			1,
+			&scissor
+		};
+
+		VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_FALSE,
+			VK_FALSE,
+			VK_POLYGON_MODE_FILL,
+			VK_CULL_MODE_BACK_BIT,
+			VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			VK_FALSE,
+			0.0f,
+			0.0f,
+			0.0f,
+			1.0f,
+		};
+
+		VkPipelineMultisampleStateCreateInfo multisampleStageCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_FALSE,
+			1.0f,
+			nullptr,
+			VK_FALSE,
+			VK_FALSE,
+		};
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachmentState =
+		{
+			VK_FALSE,
+			VK_BLEND_FACTOR_ONE,
+			VK_BLEND_FACTOR_ZERO,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_ONE,
+			VK_BLEND_FACTOR_ZERO,
+			VK_BLEND_OP_ADD,
+			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+		};
+
+		VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_FALSE,
+			VK_LOGIC_OP_COPY,
+			1,
+			&colorBlendAttachmentState,
+			{ 0.0, 0.0, 0.0, 0.0 }
+		};
+		
+		Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout> pipelineLayout = CreatePipelineLayout();
+		if (!pipelineLayout)
+			return false;
+
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			nullptr,
+			0,
+			static_cast<uint32_t>(shaderStageCreateInfo.size()),
+			&shaderStageCreateInfo[0],
+			&vertexInputStateCreateInfo,
+			&inputAssemblyStateCreateInfo,
+			nullptr,
+			&viewportStateCreateInfo,
+			&rasterizationStateCreateInfo,
+			&multisampleStageCreateInfo,
+			nullptr,
+			&colorBlendStateCreateInfo,
+			nullptr,
+			pipelineLayout.Get(),
+			Vulkan.RenderPass,
+			0,
+			VK_NULL_HANDLE,
+			-1
+		};
+
+		if (vkCreateGraphicsPipelines(Vulkan.Device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Vulkan.GraphicsPipeline) != VK_SUCCESS)
+		{
+			std::cout << "Could not create graphics pipeline" << std::endl;
+			return false;
+		}
+
+		return true;
+	}
+
+	bool StrikeRenderer::CreateSemaphores()
+	{
+		VkSemaphoreCreateInfo semaphoreCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			nullptr,
+			0
+		};
+
+		if ((vkCreateSemaphore(Vulkan.Device, &semaphoreCreateInfo, nullptr, &Vulkan.ImageAvailableSemaphore) != VK_SUCCESS) ||
+			(vkCreateSemaphore(Vulkan.Device, &semaphoreCreateInfo, nullptr, &Vulkan.RenderingFinishedSemaphore) != VK_SUCCESS))
+		{
+			std::cout << "Could not create semaphores" << std::endl;
+			return false;
+		}
 		return true;
 	}
 
 	bool StrikeRenderer::CreateCommandBuffers()
 	{
+		if (!CreateCommandPool(Vulkan.GraphicsQueue.FamilyIndex, &Vulkan.GraphicsQueueCmdPool))
+		{
+			std::cout << "Could not create command pool" << std::endl;
+			return false;
+		}
+
+		uint32_t imageCount = static_cast<uint32_t>(Vulkan.SwapChain.Images.size());
+		Vulkan.GraphicsQueueCmdBuffers.resize(imageCount, VK_NULL_HANDLE);
+
+		if (!AllocateCommandBuffers(Vulkan.GraphicsQueueCmdPool, imageCount, &Vulkan.GraphicsQueueCmdBuffers[0]))
+		{
+			std::cout << "Could not allocate command buffers" << std::endl;
+			return false;
+		}
+
+		return true;
+		/* OLD
 		VkCommandPoolCreateInfo cmdPoolCreateInfo =
 		{
 			VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -842,10 +1157,143 @@ namespace StrikeEngine
 			return false;
 		}
 		return true;
+		*/
+	}
+
+	bool StrikeRenderer::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPool* pool)
+	{
+		VkCommandPoolCreateInfo cmdPoolCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			nullptr,
+			0,
+			queueFamilyIndex
+		};
+
+		if (vkCreateCommandPool(Vulkan.Device, &cmdPoolCreateInfo, nullptr, pool) != VK_SUCCESS)
+			return false;
+
+		return true;
+	}
+
+	bool StrikeRenderer::AllocateCommandBuffers(VkCommandPool pool, uint32_t count, VkCommandBuffer* commandBuffers)
+	{
+		VkCommandBufferAllocateInfo cmdBufferAllocateInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			nullptr,
+			pool,
+			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			count
+		};
+
+		if (vkAllocateCommandBuffers(Vulkan.Device, &cmdBufferAllocateInfo, commandBuffers) != VK_SUCCESS)
+			return false;
+
+		return true;
 	}
 
 	bool StrikeRenderer::RecordCommandBuffers()
 	{
+		VkCommandBufferBeginInfo graphicsCmdBufferBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			nullptr,
+			VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+			nullptr
+		};
+
+		VkImageSubresourceRange imgSubresourceRange =
+		{
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			1,
+			0,
+			1
+		};
+
+		VkClearValue clearValue =
+		{
+			{ 1.0f, 0.8f, 0.4f, 0.0f },
+		};
+
+		const std::vector<ImageParameters>& swapChainImages = Vulkan.SwapChain.Images;
+
+		for (size_t i = 0; i < Vulkan.GraphicsQueueCmdBuffers.size(); ++i)
+		{
+			vkBeginCommandBuffer(Vulkan.GraphicsQueueCmdBuffers[i], &graphicsCmdBufferBeginInfo);
+
+			if (Vulkan.PresentQueue.Handle != Vulkan.GraphicsQueue.Handle)
+			{
+				VkImageMemoryBarrier barrierFromPresentToDraw =
+				{
+					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+					nullptr,
+					VK_ACCESS_MEMORY_READ_BIT,
+					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+					Vulkan.PresentQueue.FamilyIndex,
+					Vulkan.GraphicsQueue.FamilyIndex,
+					swapChainImages[i].Handle,
+					imgSubresourceRange
+				};
+				vkCmdPipelineBarrier(Vulkan.GraphicsQueueCmdBuffers[i], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromPresentToDraw);
+
+			}
+
+			VkRenderPassBeginInfo renderPassBeginInfo =
+			{
+				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				nullptr,
+				Vulkan.RenderPass,
+				Vulkan.FrameBuffers[i],
+				{
+					{ 0, 0 },
+					{ 300, 300 }
+				},
+				1,
+				&clearValue
+			};
+
+			vkCmdBeginRenderPass(Vulkan.GraphicsQueueCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(Vulkan.GraphicsQueueCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.GraphicsPipeline);
+
+			vkCmdDraw(Vulkan.GraphicsQueueCmdBuffers[i], 3, 1, 0, 0);
+
+			vkCmdEndRenderPass(Vulkan.GraphicsQueueCmdBuffers[i]);
+
+			if (Vulkan.GraphicsQueue.Handle != Vulkan.PresentQueue.Handle)
+			{
+				VkImageMemoryBarrier barrierFromDrawToPresent =
+				{
+					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+					nullptr,
+					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+					VK_ACCESS_MEMORY_READ_BIT,
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+					Vulkan.GraphicsQueue.FamilyIndex,
+					Vulkan.PresentQueue.FamilyIndex,
+					swapChainImages[i].Handle,
+					imgSubresourceRange
+				};
+				vkCmdPipelineBarrier(Vulkan.GraphicsQueueCmdBuffers[i], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromDrawToPresent);
+
+			}
+
+			if (vkEndCommandBuffer(Vulkan.GraphicsQueueCmdBuffers[i]) != VK_SUCCESS)
+			{
+				std::cout << "Could not record command buffer" << std::endl;
+				return false;
+			}
+
+		}
+		return true;
+
+
+		/* OLD
 		uint32_t imageCount = static_cast<uint32_t>(Vulkan.PresentQueueCmdBuffers.size());
 
 		std::vector<VkImage> swapChainImages(imageCount);
@@ -919,8 +1367,303 @@ namespace StrikeEngine
 				return false;
 			}
 		}
+		return true;*/
+	}
+
+	bool StrikeRenderer::Draw()
+	{
+		VkSemaphore imageAvailableSemaphore = Vulkan.ImageAvailableSemaphore;
+		VkSemaphore renderingFinishedSemaphore = Vulkan.RenderingFinishedSemaphore;
+		VkSwapchainKHR swapchain = Vulkan.SwapChain.Handle;
+		uint32_t imageIndex;
+
+		VkResult res = vkAcquireNextImageKHR(Vulkan.Device, swapchain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+		switch (res)
+		{
+		case VK_SUCCESS:
+		case VK_SUBOPTIMAL_KHR:
+			break;
+		case VK_ERROR_OUT_OF_DATE_KHR:
+			return OnWindowSizeChanged();
+		default:
+			std::cout << "Problem occurred during swap chain image acquisition" << std::endl;
+			return false;
+		}
+
+		VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			1,
+			&Vulkan.ImageAvailableSemaphore,
+			&waitDstStageMask,
+			1,
+			&Vulkan.GraphicsQueueCmdBuffers[imageIndex],
+			1,
+			&Vulkan.RenderingFinishedSemaphore
+		};
+
+		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+			return false;
+
+		VkPresentInfoKHR presentInfo =
+		{
+			VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			nullptr,
+			1,
+			&renderingFinishedSemaphore,
+			1,
+			&swapchain,
+			&imageIndex,
+			nullptr
+		};
+
+		res = vkQueuePresentKHR(Vulkan.PresentQueue.Handle, &presentInfo);
+
+		switch (res)
+		{
+		case VK_SUCCESS:
+			break;
+		case VK_ERROR_OUT_OF_DATE_KHR:
+		case VK_SUBOPTIMAL_KHR:
+			return OnWindowSizeChanged();
+		default:
+			std::cout << "Problem occurred during image presentation" << std::endl;
+			return false;
+		}
+		return true;
+
+		/* OLD
+		uint32_t imageIndex;
+		VkResult res = vkAcquireNextImageKHR(Vulkan.Device, Vulkan.SwapChain.Handle, UINT64_MAX, Vulkan.ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+		switch (res)
+		{
+		case VK_SUCCESS:
+		case VK_SUBOPTIMAL_KHR:
+			break;
+		case VK_ERROR_OUT_OF_DATE_KHR:
+			return OnWindowSizeChanged();
+		default:
+			std::cout << "Problem occured during swap chain image acquisition" << std::endl;
+			return false;
+		}
+
+		VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			1,
+			&Vulkan.ImageAvailableSemaphore,
+			&waitDstStageMask,
+			1,
+			&Vulkan.PresentQueueCmdBuffers[imageIndex],
+			1,
+			&Vulkan.RenderingFinishedSemaphore
+		};
+
+		if (vkQueueSubmit(Vulkan.PresentQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+			return false;
+
+		VkPresentInfoKHR presentInfo =
+		{
+			VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			nullptr,
+			1,
+			&Vulkan.RenderingFinishedSemaphore,
+			1,
+			&Vulkan.SwapChain.Handle,
+			&imageIndex,
+			nullptr
+		};
+
+		res = vkQueuePresentKHR(Vulkan.PresentQueue.Handle, &presentInfo);
+
+		switch (res)
+		{
+		case VK_SUCCESS:
+			break;
+		case VK_ERROR_OUT_OF_DATE_KHR:
+		case VK_SUBOPTIMAL_KHR:
+			return OnWindowSizeChanged();
+		default:
+			std::cout << "Problem occurred during image presentation" << std::endl;
+			return false;
+		}
+
+		return true;
+		*/
+	}
+	
+	bool StrikeRenderer::CreateSwapChainImageViews()
+	{
+
+		for (size_t i = 0; i < Vulkan.SwapChain.Images.size(); ++i) {
+			VkImageViewCreateInfo imgViewCreateInfo =
+			{
+				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				nullptr,
+				0,
+				Vulkan.SwapChain.Images[i].Handle,
+				VK_IMAGE_VIEW_TYPE_2D,
+				Vulkan.SwapChain.Format,
+				{
+					VK_COMPONENT_SWIZZLE_IDENTITY,
+					VK_COMPONENT_SWIZZLE_IDENTITY,
+					VK_COMPONENT_SWIZZLE_IDENTITY,
+					VK_COMPONENT_SWIZZLE_IDENTITY
+				},
+				{
+					VK_IMAGE_ASPECT_COLOR_BIT,
+					0,
+					1,
+					0,
+					1
+				}
+			};
+
+			if (vkCreateImageView(Vulkan.Device, &imgViewCreateInfo, nullptr, &Vulkan.SwapChain.Images[i].View) != VK_SUCCESS)
+			{
+				std::cout << "Could not create image view for framebuffer" << std::endl;
+				return false;
+			}
+		}
+
+		m_CanRender = true;
+
 		return true;
 	}
+	
+	bool StrikeRenderer::CreateSwapChain()
+	{
+		m_CanRender = false;
+
+		if (Vulkan.Device != VK_NULL_HANDLE)
+			vkDeviceWaitIdle(Vulkan.Device);
+
+		for (size_t i = 0; i < Vulkan.SwapChain.Images.size(); ++i)
+		{
+			if (Vulkan.SwapChain.Images[i].View != VK_NULL_HANDLE) 
+			{
+				vkDestroyImageView(Vulkan.Device, Vulkan.SwapChain.Images[i].View, nullptr);
+				Vulkan.SwapChain.Images[i].View = VK_NULL_HANDLE;
+			}
+		}
+		Vulkan.SwapChain.Images.clear();
+
+		VkSurfaceCapabilitiesKHR surfaceCapabilities;
+		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &surfaceCapabilities) != VK_SUCCESS)
+		{
+			std::cout << "Could not check presentation surface capabilities" << std::endl;
+			return false;
+		}
+
+		uint32_t formatsCount;
+		if ((vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &formatsCount, nullptr) != VK_SUCCESS) || (formatsCount == 0))
+		{
+			std::cout << "Error occured during presentation surface formats enumeration" << std::endl;
+			return false;
+		}
+
+		std::vector<VkSurfaceFormatKHR> surfaceFormats(formatsCount);
+		if (vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &formatsCount, surfaceFormats.data()) != VK_SUCCESS)
+		{
+			std::cout << "Error occured during presentation surface formats enumeration" << std::endl;
+			return false;
+		}
+
+		uint32_t presentModesCount;
+		if ((vkGetPhysicalDeviceSurfacePresentModesKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &presentModesCount, nullptr) != VK_SUCCESS) || (presentModesCount == 0))
+		{
+			std::cout << "Error occured during presentation surface present modes enumeration" << std::endl;
+			return false;
+		}
+
+		std::vector<VkPresentModeKHR> presentModes(presentModesCount);
+		if ((vkGetPhysicalDeviceSurfacePresentModesKHR(Vulkan.PhysicalDevice, Vulkan.PresentationSurface, &presentModesCount, presentModes.data()) != VK_SUCCESS))
+		{
+			std::cout << "Error occured during presentation surface formats enumeration" << std::endl;
+			return false;
+		}
+
+		uint32_t desiredNumberOfImages = GetSwapChainNumImages(surfaceCapabilities);
+		VkSurfaceFormatKHR desiredFormat = GetSwapChainFormat(surfaceFormats);
+		VkExtent2D desiredExtent = GetSwapChainExtent(surfaceCapabilities);
+		VkImageUsageFlags desiredUsage = GetSwapChainUsageFlags(surfaceCapabilities);
+		VkSurfaceTransformFlagBitsKHR desiredTransform = GetSwapChainTransform(surfaceCapabilities);
+		VkPresentModeKHR desiredPresentMode = GetSwapChainPresentMode(presentModes);
+		VkSwapchainKHR oldSwapChain = Vulkan.SwapChain.Handle;
+
+		if (static_cast<int>(desiredUsage) == -1)
+			return false;
+
+		if (static_cast<int>(desiredPresentMode) == -1)
+			return false;
+
+		if ((desiredExtent.width == 0) || (desiredExtent.height == 0)) {
+			//If size null, don't render anything, don't create swap chain, but don't kill app (window may be minimized)
+			return true;
+		}
+
+		VkSwapchainCreateInfoKHR swapChainCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+			nullptr,
+			0,
+			Vulkan.PresentationSurface,
+			desiredNumberOfImages,
+			desiredFormat.format,
+			desiredFormat.colorSpace,
+			desiredExtent,
+			1,
+			desiredUsage,
+			VK_SHARING_MODE_EXCLUSIVE,
+			0,
+			nullptr,
+			desiredTransform,
+			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+			desiredPresentMode,
+			VK_TRUE,
+			oldSwapChain
+		};
+
+		if (vkCreateSwapchainKHR(Vulkan.Device, &swapChainCreateInfo, nullptr, &Vulkan.SwapChain.Handle) != VK_SUCCESS)
+		{
+			std::cout << "Could not create swap chain" << std::endl;
+			return false;
+		}
+
+		if (oldSwapChain != VK_NULL_HANDLE)
+			vkDestroySwapchainKHR(Vulkan.Device, oldSwapChain, nullptr);
+
+		Vulkan.SwapChain.Format = desiredFormat.format;
+
+		uint32_t imageCount = 0;
+		if ((vkGetSwapchainImagesKHR(Vulkan.Device, Vulkan.SwapChain.Handle, &imageCount, nullptr) != VK_SUCCESS) || imageCount == 0)
+		{
+			std::cout << "Could not get swap chain images" << std::endl;
+			return false;
+		}
+		Vulkan.SwapChain.Images.resize(imageCount);
+
+		std::vector<VkImage> images(imageCount);
+		if (vkGetSwapchainImagesKHR(Vulkan.Device, Vulkan.SwapChain.Handle, &imageCount, images.data()) != VK_SUCCESS)
+		{
+			std::cout << "Could not get swap chain images" << std::endl;
+			return false;
+		}
+
+		for (size_t i = 0; i < Vulkan.SwapChain.Images.size(); ++i)
+		{
+			Vulkan.SwapChain.Images[i].Handle = images[i];
+		}
+
+		Vulkan.SwapChain.Extent = desiredExtent;
+		return CreateSwapChainImageViews();
+	}
+	
 
 
 

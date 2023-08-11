@@ -1,10 +1,10 @@
 #pragma once
-//#define VK_NO_PROTOTYPES
 //#include "vulkan/vulkan.h"
 #include "../Externals/vulkan.h"
 #include <vector>
 #include "OS.hpp"
 #include <iostream>
+#include "Tools.hpp"
 
 namespace StrikeEngine
 {
@@ -59,12 +59,18 @@ namespace StrikeEngine
 		QueueParameters PresentQueue;
 		VkSurfaceKHR PresentationSurface;
 		SwapChainParameters SwapChain;
+//============================================================
 		VkSemaphore ImageAvailableSemaphore;
 		VkSemaphore RenderingFinishedSemaphore;
 		uint32_t GraphicsQueueFamilyIndex;
 		uint32_t PresentQueueFamilyIndex;
 		std::vector<VkCommandBuffer> PresentQueueCmdBuffers;
 		VkCommandPool PresentQueueCmdPool;
+		VkRenderPass RenderPass;
+		std::vector<VkFramebuffer> FrameBuffers;
+		VkPipeline GraphicsPipeline;
+		VkCommandPool GraphicsQueueCmdPool;
+		std::vector<VkCommandBuffer> GraphicsQueueCmdBuffers;
 
 		VkParams() :
 			Instance(VK_NULL_HANDLE),
@@ -79,7 +85,14 @@ namespace StrikeEngine
 			GraphicsQueueFamilyIndex(0),
 			PresentQueueFamilyIndex(0),
 			PresentQueueCmdPool(VK_NULL_HANDLE),
-			SwapChain()
+			SwapChain(),
+			RenderPass(VK_NULL_HANDLE),
+			FrameBuffers(),
+			GraphicsPipeline(VK_NULL_HANDLE),
+			GraphicsQueueCmdPool(VK_NULL_HANDLE),
+			GraphicsQueueCmdBuffers()
+
+
 		{}
 	};
 
@@ -91,13 +104,21 @@ namespace StrikeEngine
 		StrikeRenderer(StrikeRenderer&&) = delete;
 		~StrikeRenderer();
 
-		bool InitVulkan(/*OS::WindowParameters params*/);
+		bool InitVulkan();
 
 		bool OnWindowSizeChanged() override;
+//============================================================================================================================
+
 		bool Draw() override;
 
 		bool CreateSwapChain();
 		bool CreateCommandBuffers();
+
+		bool CreateSemaphores();
+		bool RecordCommandBuffers();
+		bool CreateRenderPass();
+		bool CreateFrameBuffers();
+		bool CreatePipeline();
 
 	private:
 		StrikeWindow* m_strikeWin;
@@ -105,6 +126,9 @@ namespace StrikeEngine
 		OS::LibraryHandle VulkanLib;
 		VkParams Vulkan;
 
+		//virtual void ChildClear() = 0;
+		//virtual void ChildOnWindowSizeChanged() = 0;
+		
 		bool LoadVulkan();
 		bool LoadExportedEntryPoints();
 		bool LoadGlobalLevelEntryPoints();
@@ -115,8 +139,8 @@ namespace StrikeEngine
 		bool CheckPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, uint32_t& graphicsQueueFamilyIndex, uint32_t& presentQueueFamilyIndex);
 		bool GetDeviceQueue();
 		bool CreatePresentationSurface();
-		bool CreateSemaphores();
-		bool RecordCommandBuffers();
+		bool CreateSwapChainImageViews();
+
 
 		bool CheckExtensionAvailability(const char* extensionName, const std::vector<VkExtensionProperties>& availableExtensions);
 		uint32_t GetSwapChainNumImages(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
@@ -125,7 +149,15 @@ namespace StrikeEngine
 		VkImageUsageFlags GetSwapChainUsageFlags(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
 		VkSurfaceTransformFlagBitsKHR GetSwapChainTransform(VkSurfaceCapabilitiesKHR& surfaceCapabilities);
 		VkPresentModeKHR GetSwapChainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
-	
+//============================================================================================================================
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> CreateShaderModule(const char* filename);
+		Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout> CreatePipelineLayout();
+		
+		bool Clear();
+
+		bool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPool* pool);
+		bool AllocateCommandBuffers(VkCommandPool pool, uint32_t count, VkCommandBuffer* commandBuffers);;
+		
 	};
 
 
