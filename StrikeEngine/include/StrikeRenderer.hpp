@@ -9,6 +9,12 @@
 namespace StrikeEngine
 {
 
+	struct VertexData
+	{
+		float x, y, z, w;
+		float r, g, b, a;
+	};
+
 	struct ImageParameters
 	{
 		VkImage Handle;
@@ -35,6 +41,19 @@ namespace StrikeEngine
 		{}
 	};
 
+	struct BufferParameters
+	{
+		VkBuffer Handle;
+		VkDeviceMemory Memory;
+		uint32_t Size;
+
+		BufferParameters() :
+			Handle(VK_NULL_HANDLE),
+			Memory(VK_NULL_HANDLE),
+			Size(0)
+		{}
+	};
+
 	struct SwapChainParameters
 	{
 		VkSwapchainKHR Handle;
@@ -50,6 +69,23 @@ namespace StrikeEngine
 		{}
 	};
 
+	struct RenderingResourceData
+	{
+		VkFramebuffer FrameBuffer;
+		VkCommandBuffer CommandBuffer;
+		VkSemaphore ImageAvailableSemaphore;
+		VkSemaphore FinishedRenderingSemaphore;
+		VkFence Fence;
+
+		RenderingResourceData() :
+			FrameBuffer(VK_NULL_HANDLE),
+			CommandBuffer(VK_NULL_HANDLE),
+			ImageAvailableSemaphore(VK_NULL_HANDLE),
+			FinishedRenderingSemaphore(VK_NULL_HANDLE),
+			Fence(VK_NULL_HANDLE)
+		{}
+	};
+
 	struct VkParams
 	{
 		VkInstance Instance;
@@ -60,17 +96,18 @@ namespace StrikeEngine
 		VkSurfaceKHR PresentationSurface;
 		SwapChainParameters SwapChain;
 //============================================================
-		VkSemaphore ImageAvailableSemaphore;
-		VkSemaphore RenderingFinishedSemaphore;
 		uint32_t GraphicsQueueFamilyIndex;
 		uint32_t PresentQueueFamilyIndex;
 		std::vector<VkCommandBuffer> PresentQueueCmdBuffers;
-		VkCommandPool PresentQueueCmdPool;
 		VkRenderPass RenderPass;
 		std::vector<VkFramebuffer> FrameBuffers;
 		VkPipeline GraphicsPipeline;
-		VkCommandPool GraphicsQueueCmdPool;
 		std::vector<VkCommandBuffer> GraphicsQueueCmdBuffers;
+		BufferParameters VertexBuffer;
+		std::vector<RenderingResourceData> RenderingResources;
+		VkCommandPool CommandPool;
+
+		static const size_t ResourcesCount = 3;
 
 		VkParams() :
 			Instance(VK_NULL_HANDLE),
@@ -79,18 +116,16 @@ namespace StrikeEngine
 			GraphicsQueue(),
 			PresentQueue(),
 			PresentationSurface(VK_NULL_HANDLE),
-			ImageAvailableSemaphore(VK_NULL_HANDLE),
-			RenderingFinishedSemaphore(VK_NULL_HANDLE),
 			PresentQueueCmdBuffers(0),
 			GraphicsQueueFamilyIndex(0),
 			PresentQueueFamilyIndex(0),
-			PresentQueueCmdPool(VK_NULL_HANDLE),
 			SwapChain(),
 			RenderPass(VK_NULL_HANDLE),
 			FrameBuffers(),
 			GraphicsPipeline(VK_NULL_HANDLE),
-			GraphicsQueueCmdPool(VK_NULL_HANDLE),
-			GraphicsQueueCmdBuffers()
+			GraphicsQueueCmdBuffers(),
+			CommandPool(VK_NULL_HANDLE),
+			RenderingResources(ResourcesCount)
 
 
 		{}
@@ -117,8 +152,10 @@ namespace StrikeEngine
 		bool CreateSemaphores();
 		bool RecordCommandBuffers();
 		bool CreateRenderPass();
-		bool CreateFrameBuffers();
+		bool CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView);
 		bool CreatePipeline();
+		bool CreateVertexBuffer();
+		bool CreateRenderingResources();
 
 	private:
 		StrikeWindow* m_strikeWin;
@@ -152,12 +189,13 @@ namespace StrikeEngine
 //============================================================================================================================
 		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> CreateShaderModule(const char* filename);
 		Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout> CreatePipelineLayout();
-		
-		bool Clear();
+	
 
 		bool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPool* pool);
 		bool AllocateCommandBuffers(VkCommandPool pool, uint32_t count, VkCommandBuffer* commandBuffers);;
-		
+		bool AllocateBufferMemory(VkBuffer buffer, VkDeviceMemory* memory);
+		bool CreateFences();
+		bool PrepareFrame(VkCommandBuffer cmdBuffer, const ImageParameters& imgParams, VkFramebuffer& frameBuffer);
 	};
 
 
