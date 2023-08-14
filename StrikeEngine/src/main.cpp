@@ -18,6 +18,11 @@ int main() {
 		return -1;
 	}
 
+	if (!rend.CreateRenderingResources())
+	{
+		return -1;
+	}
+
 	if(!rend.CreateRenderPass())
 	{
 		return -1;
@@ -33,11 +38,15 @@ int main() {
 		return -1;
 	}
 
-	if (!rend.CreateRenderingResources())
+	if (!rend.CreateStagingBuffer())
 	{
 		return -1;
 	}
 
+	if (!rend.CopyVertexData())
+	{
+		return -1;
+	}
 
 	if (!window.RenderingLoop(rend))
 	{

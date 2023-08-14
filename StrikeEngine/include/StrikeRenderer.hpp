@@ -104,6 +104,7 @@ namespace StrikeEngine
 		VkPipeline GraphicsPipeline;
 		std::vector<VkCommandBuffer> GraphicsQueueCmdBuffers;
 		BufferParameters VertexBuffer;
+		BufferParameters StagingBuffer;
 		std::vector<RenderingResourceData> RenderingResources;
 		VkCommandPool CommandPool;
 
@@ -125,8 +126,9 @@ namespace StrikeEngine
 			GraphicsPipeline(VK_NULL_HANDLE),
 			GraphicsQueueCmdBuffers(),
 			CommandPool(VK_NULL_HANDLE),
-			RenderingResources(ResourcesCount)
-
+			RenderingResources(ResourcesCount),
+			VertexBuffer(),
+			StagingBuffer()
 
 		{}
 	};
@@ -149,12 +151,14 @@ namespace StrikeEngine
 		bool CreateSwapChain();
 		bool CreateCommandBuffers();
 
-		bool CreateSemaphores();
+		bool CreateSemaphores(VkSemaphore* semaphore);
 		bool RecordCommandBuffers();
 		bool CreateRenderPass();
 		bool CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView);
 		bool CreatePipeline();
 		bool CreateVertexBuffer();
+		bool CreateStagingBuffer();
+		bool CopyVertexData();
 		bool CreateRenderingResources();
 
 	private:
@@ -193,9 +197,13 @@ namespace StrikeEngine
 
 		bool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPool* pool);
 		bool AllocateCommandBuffers(VkCommandPool pool, uint32_t count, VkCommandBuffer* commandBuffers);;
-		bool AllocateBufferMemory(VkBuffer buffer, VkDeviceMemory* memory);
-		bool CreateFences();
+		bool AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory);
+		bool CreateFences(VkFenceCreateFlags flags, VkFence* fence);
 		bool PrepareFrame(VkCommandBuffer cmdBuffer, const ImageParameters& imgParams, VkFramebuffer& frameBuffer);
+	
+		bool CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlagBits memoryProperty, BufferParameters& buffer);
+		void DestroyBuffer(BufferParameters& buffer);
+		const std::vector<float>& GetVertexData() const;
 	};
 
 
