@@ -12,7 +12,7 @@ namespace StrikeEngine
 	struct VertexData
 	{
 		float x, y, z, w;
-		float r, g, b, a;
+		float u, v;
 	};
 
 	struct ImageParameters
@@ -38,6 +38,19 @@ namespace StrikeEngine
 		QueueParameters() :
 			Handle(VK_NULL_HANDLE),
 			FamilyIndex(0)
+		{}
+	};
+
+	struct DescriptorSetParameters
+	{
+		VkDescriptorPool Pool;
+		VkDescriptorSetLayout Layout;
+		VkDescriptorSet Handle;
+
+		DescriptorSetParameters() :
+			Pool(VK_NULL_HANDLE),
+			Layout(VK_NULL_HANDLE),
+			Handle(VK_NULL_HANDLE)
 		{}
 	};
 
@@ -107,6 +120,11 @@ namespace StrikeEngine
 		BufferParameters StagingBuffer;
 		std::vector<RenderingResourceData> RenderingResources;
 		VkCommandPool CommandPool;
+		ImageParameters Image;
+		DescriptorSetParameters DescriptorSet;
+		VkPipelineLayout PipelineLayout;
+		BufferParameters UniformBuffer;
+
 
 		static const size_t ResourcesCount = 3;
 
@@ -128,7 +146,10 @@ namespace StrikeEngine
 			CommandPool(VK_NULL_HANDLE),
 			RenderingResources(ResourcesCount),
 			VertexBuffer(),
-			StagingBuffer()
+			StagingBuffer(),
+			Image(),
+			PipelineLayout(),
+			UniformBuffer()
 
 		{}
 	};
@@ -151,8 +172,7 @@ namespace StrikeEngine
 		bool CreateSwapChain();
 		bool CreateCommandBuffers();
 
-		bool CreateSemaphores(VkSemaphore* semaphore);
-		bool RecordCommandBuffers();
+		bool CreateSemaphore();
 		bool CreateRenderPass();
 		bool CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView);
 		bool CreatePipeline();
@@ -160,6 +180,14 @@ namespace StrikeEngine
 		bool CreateStagingBuffer();
 		bool CopyVertexData();
 		bool CreateRenderingResources();
+		bool CreateTexture();
+		bool CreateDescriptorSetLayout();
+		bool CreateDescriptorPool();
+		bool AllocateDescriptorSet();
+		bool UpdateDescriptorSet();
+		bool CreatePipelineLayout();
+		bool CreateUniformBuffer();
+
 
 	private:
 		StrikeWindow* m_strikeWin;
@@ -192,18 +220,37 @@ namespace StrikeEngine
 		VkPresentModeKHR GetSwapChainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
 //============================================================================================================================
 		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> CreateShaderModule(const char* filename);
-		Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout> CreatePipelineLayout();
 	
 
 		bool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPool* pool);
 		bool AllocateCommandBuffers(VkCommandPool pool, uint32_t count, VkCommandBuffer* commandBuffers);;
 		bool AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory);
-		bool CreateFences(VkFenceCreateFlags flags, VkFence* fence);
+		bool CreateFences();
 		bool PrepareFrame(VkCommandBuffer cmdBuffer, const ImageParameters& imgParams, VkFramebuffer& frameBuffer);
 	
 		bool CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlagBits memoryProperty, BufferParameters& buffer);
 		void DestroyBuffer(BufferParameters& buffer);
 		const std::vector<float>& GetVertexData() const;
+
+		
+
+		bool CreateImage(uint32_t width, uint32_t height, VkImage* image);
+		bool AllocateImageMemory(VkImage image, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory);
+		bool CreateImageView(ImageParameters& imgParams);
+		bool CreateSampler(VkSampler* sampler);
+		bool CopyTextureData(char* textureData, uint32_t dataSize, uint32_t width, uint32_t height);
+
+		bool CopyUniformBufferData();
+		const std::array<float, 16> GetUniformBufferData() const;
+		
+
+		VkPhysicalDevice              GetPhysicalDevice() const;
+		VkDevice                      GetDevice() const;
+
+		const QueueParameters         GetGraphicsQueue() const;
+		const QueueParameters         GetPresentQueue() const;
+
+		const SwapChainParameters& GetSwapChain() const;
 	};
 
 

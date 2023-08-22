@@ -5,6 +5,51 @@
 
 namespace StrikeEngine
 {
+	VkPhysicalDevice StrikeRenderer::GetPhysicalDevice() const
+	{
+		return Vulkan.PhysicalDevice;
+	}
+
+	VkDevice StrikeRenderer::GetDevice() const
+	{
+		return Vulkan.Device;
+	}
+
+	const StrikeEngine::QueueParameters StrikeRenderer::GetGraphicsQueue() const
+	{
+		return Vulkan.GraphicsQueue;
+	}
+
+	const StrikeEngine::QueueParameters StrikeRenderer::GetPresentQueue() const
+	{
+		return Vulkan.PresentQueue;
+	}
+
+	const StrikeEngine::SwapChainParameters& StrikeRenderer::GetSwapChain() const
+	{
+		return Vulkan.SwapChain;
+	}
+
+	bool StrikeRenderer::OnWindowSizeChanged()
+	{
+		if (Vulkan.Device != VK_NULL_HANDLE) {
+			vkDeviceWaitIdle(Vulkan.Device);
+		}
+
+		if (CreateSwapChain()) {
+			if (m_CanRender) {
+				if ((GetDevice() != VK_NULL_HANDLE) &&
+					(Vulkan.StagingBuffer.Handle != VK_NULL_HANDLE)) {
+					vkDeviceWaitIdle(GetDevice());
+					return CopyUniformBufferData();
+				}
+				return true;
+			}
+			return true;
+		}
+
+		return false;
+	}
 
 	StrikeRenderer::StrikeRenderer(StrikeWindow* strikeWindow) :
 		VulkanLib(),
@@ -19,29 +64,15 @@ namespace StrikeEngine
 		{
 			vkDeviceWaitIdle(Vulkan.Device);
 
-			DestroyBuffer(Vulkan.VertexBuffer);
-			DestroyBuffer(Vulkan.StagingBuffer);
-
-			if (Vulkan.GraphicsPipeline != VK_NULL_HANDLE)
-			{
-				vkDestroyPipeline(Vulkan.Device, Vulkan.GraphicsPipeline, nullptr);
-				Vulkan.GraphicsPipeline = VK_NULL_HANDLE;
-			}
-
-			if (Vulkan.RenderPass != VK_NULL_HANDLE)
-			{
-				vkDestroyRenderPass(Vulkan.Device, Vulkan.RenderPass, nullptr);
-				Vulkan.RenderPass = VK_NULL_HANDLE;
-			}
 
 			for (size_t i = 0; i < Vulkan.RenderingResources.size(); ++i)
 			{
 				if (Vulkan.RenderingResources[i].FrameBuffer != VK_NULL_HANDLE)
 					vkDestroyFramebuffer(Vulkan.Device, Vulkan.RenderingResources[i].FrameBuffer, nullptr);
-			
+
 				if (Vulkan.RenderingResources[i].CommandBuffer != VK_NULL_HANDLE)
 					vkFreeCommandBuffers(Vulkan.Device, Vulkan.CommandPool, 1, &Vulkan.RenderingResources[i].CommandBuffer);
-			
+
 				if (Vulkan.RenderingResources[i].ImageAvailableSemaphore != VK_NULL_HANDLE)
 					vkDestroySemaphore(Vulkan.Device, Vulkan.RenderingResources[i].ImageAvailableSemaphore, nullptr);
 
@@ -58,6 +89,64 @@ namespace StrikeEngine
 				Vulkan.CommandPool = VK_NULL_HANDLE;
 			}
 
+
+			DestroyBuffer(Vulkan.VertexBuffer);
+			DestroyBuffer(Vulkan.StagingBuffer);
+
+
+			if (Vulkan.GraphicsPipeline != VK_NULL_HANDLE)
+			{
+				vkDestroyPipeline(Vulkan.Device, Vulkan.GraphicsPipeline, nullptr);
+				Vulkan.GraphicsPipeline = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.PipelineLayout != VK_NULL_HANDLE)
+			{
+				vkDestroyPipelineLayout(Vulkan.Device, Vulkan.PipelineLayout, nullptr);
+				Vulkan.PipelineLayout = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.RenderPass != VK_NULL_HANDLE)
+			{
+				vkDestroyRenderPass(Vulkan.Device, Vulkan.RenderPass, nullptr);
+				Vulkan.RenderPass = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.DescriptorSet.Pool != VK_NULL_HANDLE)
+			{
+				vkDestroyDescriptorPool(Vulkan.Device, Vulkan.DescriptorSet.Pool, nullptr);
+				Vulkan.DescriptorSet.Pool = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.DescriptorSet.Layout != VK_NULL_HANDLE)
+			{
+				vkDestroyDescriptorSetLayout(Vulkan.Device, Vulkan.DescriptorSet.Layout, nullptr);
+				Vulkan.DescriptorSet.Layout = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.Image.Sampler != VK_NULL_HANDLE)
+			{
+				vkDestroySampler(Vulkan.Device, Vulkan.Image.Sampler, nullptr);
+				Vulkan.Image.Sampler = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.Image.View != VK_NULL_HANDLE)
+			{
+				vkDestroyImageView(Vulkan.Device, Vulkan.Image.View, nullptr);
+				Vulkan.Image.View = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.Image.Handle != VK_NULL_HANDLE)
+			{
+				vkDestroyImage(Vulkan.Device, Vulkan.Image.Handle, nullptr);
+				Vulkan.Image.Handle = VK_NULL_HANDLE;
+			}
+
+			if (Vulkan.Image.Memory != VK_NULL_HANDLE)
+			{
+				vkFreeMemory(Vulkan.Device, Vulkan.Image.Memory, nullptr);
+				Vulkan.Image.Memory = VK_NULL_HANDLE;
+			}
 		}
 
 		if (Vulkan.Device != VK_NULL_HANDLE) {
@@ -69,32 +158,22 @@ namespace StrikeEngine
 				}
 			}
 
-			if (Vulkan.SwapChain.Handle != VK_NULL_HANDLE) 
+			if (Vulkan.SwapChain.Handle != VK_NULL_HANDLE)
 				vkDestroySwapchainKHR(Vulkan.Device, Vulkan.SwapChain.Handle, nullptr);
-			
+
 			vkDestroyDevice(Vulkan.Device, nullptr);
 		}
 
 		if (Vulkan.PresentationSurface != VK_NULL_HANDLE)
 			vkDestroySurfaceKHR(Vulkan.Instance, Vulkan.PresentationSurface, nullptr);
 
-		if (Vulkan.Instance != VK_NULL_HANDLE) 
+		if (Vulkan.Instance != VK_NULL_HANDLE)
 			vkDestroyInstance(Vulkan.Instance, nullptr);
 
 		if (VulkanLib)
 			FreeLibrary(VulkanLib);
 
 	}
-
-// 	void StrikeRenderer::ChildClear()
-// 	{
-// 
-// 	}
-// 
-// 	void StrikeRenderer::ChildOnWindowSizeChanged()
-// 	{
-// 
-// 	}
 
 	bool StrikeRenderer::LoadVulkan()
 	{
@@ -138,73 +217,60 @@ namespace StrikeEngine
 		return true;
 	}
 
-	bool StrikeRenderer::OnWindowSizeChanged()
-	{
-		if (Vulkan.Device != VK_NULL_HANDLE)
-			vkDeviceWaitIdle(Vulkan.Device);
-
-		if (CreateSwapChain())
-		{
-			if (m_CanRender)
-				return true;
-			return true;
-		}
-		return false;
-	}
 
 	bool StrikeRenderer::LoadExportedEntryPoints()
 	{
-	//#ifdef VK_USE_PLATFORM_WIN32_KHR
-	#define LoadProcAddress GetProcAddress
-	//#endif
-	
-	#define VK_EXPORTED_FUNCTION(func)																\
+		//#ifdef VK_USE_PLATFORM_WIN32_KHR
+#define LoadProcAddress GetProcAddress
+//#endif
+
+#define VK_EXPORTED_FUNCTION(func)																\
 		if( !(func = (PFN_##func)LoadProcAddress( VulkanLib, #func )) )								\
 		{																							\
 				std::cout << "Could not load exported function: " << #func << "!" << std::endl;		\
 				return false;																		\
 		}
-	
-	#include "VkFuncList.inl"
+
+#include "VkFuncList.inl"
 		return true;
 	}
 
 	bool StrikeRenderer::LoadGlobalLevelEntryPoints()
 	{
-	#define VK_GLOBAL_LEVEL_FUNCTION(func)															\
+#define VK_GLOBAL_LEVEL_FUNCTION(func)															\
 		if (!(func = (PFN_##func)vkGetInstanceProcAddr(nullptr, #func)))							\
 		{																							\
 			std::cout << "Could not load global level function: " << #func << "!" << std::endl;		\
 			return false;																			\
 		}
-	
-	#include "VkFuncList.inl"
+
+#include "VkFuncList.inl"
 		return true;
 	}
 
 	bool StrikeRenderer::LoadInstanceLevelEntryPoints()
 	{
-	#define VK_INSTANCE_LEVEL_FUNCTION(func)														\
+#define VK_INSTANCE_LEVEL_FUNCTION(func)														\
 		if (!(func = (PFN_##func)vkGetInstanceProcAddr(Vulkan.Instance, #func)))					\
 		{																							\
 			std::cout << "Could not load instance level function: " << #func << "!" << std::endl;	\
 			return false;																			\
 		}
-	
-	#include "VkFuncList.inl"
+
+#include "VkFuncList.inl"
 		return true;
 	}
 
 	bool StrikeRenderer::LoadDeviceLevelEntryPoints()
 	{
-	#define VK_DEVICE_LEVEL_FUNCTION(func)															\
+#define VK_DEVICE_LEVEL_FUNCTION(func)															\
 		if (!(func = (PFN_##func)vkGetDeviceProcAddr(Vulkan.Device, #func)))						\
 		{																							\
 			std::cout << "Could not load device level function: " << #func << "!" << std::endl;		\
 			return false;																			\
 		}
-	
-	#include "VkFuncList.inl"
+
+#include "VkFuncList.inl"
 		return true;
 	}
 
@@ -218,7 +284,7 @@ namespace StrikeEngine
 		}
 
 		std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
-		if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, &availableExtensions[0]) != VK_SUCCESS)
+		if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, availableExtensions.data()) != VK_SUCCESS)
 		{
 			std::cout << "Error occured during instance extensions enumeration" << std::endl;
 			return false;
@@ -250,7 +316,7 @@ namespace StrikeEngine
 			VK_MAKE_VERSION(1, 0, 0),
 			"Strike Engine",
 			VK_MAKE_VERSION(1, 0, 0),
-			VK_API_VERSION
+			VK_MAKE_VERSION(1, 0, 0)
 		};
 
 		VkInstanceCreateInfo instanceCreateInfo =
@@ -262,7 +328,7 @@ namespace StrikeEngine
 			0,
 			nullptr,
 			static_cast<uint32_t>(extensions.size()),
-			&extensions[0]
+			extensions.data()
 		};
 
 		if (vkCreateInstance(&instanceCreateInfo, nullptr, &Vulkan.Instance) != VK_SUCCESS)
@@ -365,103 +431,103 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CheckPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, uint32_t& selectedGraphicsQueueFamilyIndex, uint32_t& selectedPresentQueueFamilyIndex)
 	{
-// 		uint32_t extensionsCount = 0;
-// 		if ((vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionsCount, nullptr) != VK_SUCCESS) || (extensionsCount == 0))
-// 		{
-// 			std::cout << "Error occurred during physical device " << physicalDevice << " extensions enumeration" << std::endl;
-// 			return false;
-// 		}
-// 
-// 		std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
-// 		if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionsCount, availableExtensions.data()) != VK_SUCCESS)
-// 		{
-// 			std::cout << "Error occurred during physical device " << physicalDevice << " extensions enumeration" << std::endl;
-// 			return false;
-// 		}
-// 
-// 		std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-// 
-// 		for (size_t i = 0; i < deviceExtensions.size(); ++i)
-// 		{
-// 			if (!CheckExtensionAvailability(deviceExtensions[i], availableExtensions))
-// 			{
-// 				std::cout << "Physical device " << physicalDevice << " doesn't support extension named\"" << deviceExtensions[i] << "\"!" << std::endl;
-// 				return false;
-// 			}
-// 		}
-// 
-// 		VkPhysicalDeviceProperties deviceProperties;
-// 		VkPhysicalDeviceFeatures deviceFeatures;
-// 
-// 		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-// 		vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
-// 
-// 		uint32_t majorVersion = VK_VERSION_MAJOR(deviceProperties.apiVersion);
-// 		uint32_t minorVersion = VK_VERSION_MINOR(deviceProperties.apiVersion);
-// 		uint32_t patchVersion = VK_VERSION_PATCH(deviceProperties.apiVersion);
-// 
-// 		if ((majorVersion < 1) || (deviceProperties.limits.maxImageDimension2D < 4096))
-// 		{
-// 			std::cout << "Physical device " << physicalDevice << " doesn't support required parameters" << std::endl;
-// 			return false;
-// 		}
-// 
-// 		uint32_t queueFamiliesCount = 0;
-// 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamiliesCount, nullptr);
-// 		if (queueFamiliesCount == 0)
-// 		{
-// 			std::cout << "Physical device " << physicalDevice << " doesn't have any queue families" << std::endl;
-// 			return false;
-// 		}
-// 
-// 		std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamiliesCount);
-// 		std::vector<VkBool32> queuePresentSupport(queueFamiliesCount);
-// 
-// 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamiliesCount, queueFamilyProperties.data());
-// 
-// 		uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
-// 		uint32_t presentQueueFamilyIndex = UINT32_MAX;
-// 
-// 		for (uint32_t i = 0; i < queueFamiliesCount; ++i)
-// 		{
-// 			//vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, Vulkan.PresentationSurface, &queuePresentSupport[i]);
-// 
-// 			if ((queueFamilyProperties[i].queueCount > 0) && (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
-// 			{
-// 				//Select first queue that support graphics
-// 				if (graphicsQueueFamilyIndex == UINT32_MAX)
-// 					graphicsQueueFamilyIndex = i;
-// 
-// 				//If there is queue that supports both graphics and present, prefer it
-// 				if (queuePresentSupport[i])
-// 				{
-// 					selectedGraphicsQueueFamilyIndex = i;
-// 					selectedPresentQueueFamilyIndex = i;
-// 					return true;
-// 				}
-// 			}
-// 		}
-// 
-// 		//We don't have queue that supports both graphics and present so we have to use separate queues
-// 		for (uint32_t i = 0; i < queueFamiliesCount; ++i)
-// 		{
-// 			if (queuePresentSupport[i])
-// 			{
-// 				presentQueueFamilyIndex = i;
-// 				break;
-// 			}
-// 		}
-// 
-// 		//If this device doesn't support queues with graphics and present capabilites don't use it
-// 		if ((graphicsQueueFamilyIndex == UINT32_MAX) || (presentQueueFamilyIndex == UINT32_MAX))
-// 		{
-// 			std::cout << "Could not find queue families with required properties on physical device " << physicalDevice << std::endl;
-// 			return false;
-// 		}
-// 
-// 		selectedGraphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
-// 		selectedPresentQueueFamilyIndex = presentQueueFamilyIndex;
-// 		return true;
+		// 		uint32_t extensionsCount = 0;
+		// 		if ((vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionsCount, nullptr) != VK_SUCCESS) || (extensionsCount == 0))
+		// 		{
+		// 			std::cout << "Error occurred during physical device " << physicalDevice << " extensions enumeration" << std::endl;
+		// 			return false;
+		// 		}
+		// 
+		// 		std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
+		// 		if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionsCount, availableExtensions.data()) != VK_SUCCESS)
+		// 		{
+		// 			std::cout << "Error occurred during physical device " << physicalDevice << " extensions enumeration" << std::endl;
+		// 			return false;
+		// 		}
+		// 
+		// 		std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		// 
+		// 		for (size_t i = 0; i < deviceExtensions.size(); ++i)
+		// 		{
+		// 			if (!CheckExtensionAvailability(deviceExtensions[i], availableExtensions))
+		// 			{
+		// 				std::cout << "Physical device " << physicalDevice << " doesn't support extension named\"" << deviceExtensions[i] << "\"!" << std::endl;
+		// 				return false;
+		// 			}
+		// 		}
+		// 
+		// 		VkPhysicalDeviceProperties deviceProperties;
+		// 		VkPhysicalDeviceFeatures deviceFeatures;
+		// 
+		// 		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+		// 		vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+		// 
+		// 		uint32_t majorVersion = VK_VERSION_MAJOR(deviceProperties.apiVersion);
+		// 		uint32_t minorVersion = VK_VERSION_MINOR(deviceProperties.apiVersion);
+		// 		uint32_t patchVersion = VK_VERSION_PATCH(deviceProperties.apiVersion);
+		// 
+		// 		if ((majorVersion < 1) || (deviceProperties.limits.maxImageDimension2D < 4096))
+		// 		{
+		// 			std::cout << "Physical device " << physicalDevice << " doesn't support required parameters" << std::endl;
+		// 			return false;
+		// 		}
+		// 
+		// 		uint32_t queueFamiliesCount = 0;
+		// 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamiliesCount, nullptr);
+		// 		if (queueFamiliesCount == 0)
+		// 		{
+		// 			std::cout << "Physical device " << physicalDevice << " doesn't have any queue families" << std::endl;
+		// 			return false;
+		// 		}
+		// 
+		// 		std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamiliesCount);
+		// 		std::vector<VkBool32> queuePresentSupport(queueFamiliesCount);
+		// 
+		// 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamiliesCount, queueFamilyProperties.data());
+		// 
+		// 		uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
+		// 		uint32_t presentQueueFamilyIndex = UINT32_MAX;
+		// 
+		// 		for (uint32_t i = 0; i < queueFamiliesCount; ++i)
+		// 		{
+		// 			//vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, Vulkan.PresentationSurface, &queuePresentSupport[i]);
+		// 
+		// 			if ((queueFamilyProperties[i].queueCount > 0) && (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+		// 			{
+		// 				//Select first queue that support graphics
+		// 				if (graphicsQueueFamilyIndex == UINT32_MAX)
+		// 					graphicsQueueFamilyIndex = i;
+		// 
+		// 				//If there is queue that supports both graphics and present, prefer it
+		// 				if (queuePresentSupport[i])
+		// 				{
+		// 					selectedGraphicsQueueFamilyIndex = i;
+		// 					selectedPresentQueueFamilyIndex = i;
+		// 					return true;
+		// 				}
+		// 			}
+		// 		}
+		// 
+		// 		//We don't have queue that supports both graphics and present so we have to use separate queues
+		// 		for (uint32_t i = 0; i < queueFamiliesCount; ++i)
+		// 		{
+		// 			if (queuePresentSupport[i])
+		// 			{
+		// 				presentQueueFamilyIndex = i;
+		// 				break;
+		// 			}
+		// 		}
+		// 
+		// 		//If this device doesn't support queues with graphics and present capabilites don't use it
+		// 		if ((graphicsQueueFamilyIndex == UINT32_MAX) || (presentQueueFamilyIndex == UINT32_MAX))
+		// 		{
+		// 			std::cout << "Could not find queue families with required properties on physical device " << physicalDevice << std::endl;
+		// 			return false;
+		// 		}
+		// 
+		// 		selectedGraphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
+		// 		selectedPresentQueueFamilyIndex = presentQueueFamilyIndex;
+		// 		return true;
 
 		uint32_t extensions_count = 0;
 		if ((vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensions_count, nullptr) != VK_SUCCESS) ||
@@ -568,6 +634,7 @@ namespace StrikeEngine
 		return false;
 	}
 
+
 	bool StrikeRenderer::CreatePresentationSurface()
 	{
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo =
@@ -591,7 +658,7 @@ namespace StrikeEngine
 		vkGetDeviceQueue(Vulkan.Device, Vulkan.PresentQueue.FamilyIndex, 0, &Vulkan.PresentQueue.Handle);
 		return true;
 	}
-	
+
 	uint32_t StrikeRenderer::GetSwapChainNumImages(VkSurfaceCapabilitiesKHR& surfaceCapabilities)
 	{
 		uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
@@ -691,1043 +758,7 @@ namespace StrikeEngine
 		std::cout << "FIFO present mode is not supported by the swap chain" << std::endl;
 		return static_cast<VkPresentModeKHR>(-1);
 	}
-	
-	bool StrikeRenderer::CreateRenderPass()
-	{
-		VkAttachmentDescription attachmentDesc[] =
-		{
-			{
-				0,
-				Vulkan.SwapChain.Format,
-				VK_SAMPLE_COUNT_1_BIT,
-				VK_ATTACHMENT_LOAD_OP_CLEAR,
-				VK_ATTACHMENT_STORE_OP_STORE,
-				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-				VK_ATTACHMENT_STORE_OP_STORE,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-			}
-		};
-		
-		VkAttachmentReference colorAttachmentRef[] =
-		{
-			{
-				0,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-			}
-		};
 
-		VkSubpassDescription subpassDesc[] =
-		{
-			{
-				0,
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				0,
-				nullptr,
-				1,
-				colorAttachmentRef,
-				nullptr,
-				nullptr,
-				0,
-				nullptr
-			}
-		};
-		
-
-		std::vector<VkSubpassDependency> dependencies =
-		{
-			{
-				VK_SUBPASS_EXTERNAL,
-				0,
-				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-				VK_ACCESS_MEMORY_READ_BIT,
-				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-				VK_DEPENDENCY_BY_REGION_BIT
-			},
-			{
-				0,
-				VK_SUBPASS_EXTERNAL,
-				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-				VK_ACCESS_MEMORY_READ_BIT,
-				VK_DEPENDENCY_BY_REGION_BIT
-			}
-		};
-		
-		VkRenderPassCreateInfo renderPassCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-			nullptr,
-			0,
-			1,
-			attachmentDesc,
-			1,
-			subpassDesc,
-			static_cast<uint32_t>(dependencies.size()),
-			dependencies.data()
-		};
-
-		if (vkCreateRenderPass(Vulkan.Device, &renderPassCreateInfo, nullptr, &Vulkan.RenderPass) != VK_SUCCESS)
-		{
-			std::cout << "Could not create render pass" << std::endl;
-			return false;
-		}
-		return true;
-	}
-
-	bool StrikeRenderer::CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView)
-	{
-		if (frameBuffer != VK_NULL_HANDLE)
-			vkDestroyFramebuffer(Vulkan.Device, frameBuffer, nullptr);
-
-		VkFramebufferCreateInfo frameBufferCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-			nullptr,
-			0,
-			Vulkan.RenderPass,
-			1,
-			&imageView,
-			Vulkan.SwapChain.Extent.width,
-			Vulkan.SwapChain.Extent.height,
-			1
-		};
-
-		if (vkCreateFramebuffer(Vulkan.Device, &frameBufferCreateInfo, nullptr, &frameBuffer) != VK_SUCCESS)
-		{
-			std::cout << "Could not create a framebuffer" << std::endl;
-			return false;
-		}
-
-		return true;
-	}
-
-	Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> StrikeRenderer::CreateShaderModule(const char* filename)
-	{
-		const std::vector<char> code = Tools::GetBinaryFileContents(filename);
-		if (code.size() == 0)
-			return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>();
-
-		VkShaderModuleCreateInfo shaderModuleCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-			nullptr,
-			0,
-			code.size(),
-			reinterpret_cast<const uint32_t*>(&code[0])
-		};
-
-		VkShaderModule shaderModule;
-		if (vkCreateShaderModule(Vulkan.Device, &shaderModuleCreateInfo, nullptr, &shaderModule) != VK_SUCCESS)
-		{
-			std::cout << "Could not create shader module from a " << filename << " file" << std::endl;
-			return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>();
-		}
-
-		return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>(shaderModule, vkDestroyShaderModule, Vulkan.Device);
-	}
-
-	Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout> StrikeRenderer::CreatePipelineLayout()
-	{
-		VkPipelineLayoutCreateInfo layoutCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			nullptr,
-			0,
-			0,
-			nullptr,
-			0,
-			nullptr
-		};
-
-		VkPipelineLayout pipelineLayout;
-		if (vkCreatePipelineLayout(Vulkan.Device, &layoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-		{
-			std::cout << "Could not create pipeline layout" << std::endl;
-			return Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout>();
-		}
-
-		return Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout>(pipelineLayout, vkDestroyPipelineLayout, Vulkan.Device);
-	}
-
-	bool StrikeRenderer::CreatePipeline()
-	{
-		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> vertexShaderModule = CreateShaderModule("../Data/vert.spv");
-		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> fragmentShaderModule = CreateShaderModule("../Data/frag.spv");
-
-		if (!vertexShaderModule || !fragmentShaderModule)
-			return false;
-
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo =
-		{
-			//Vertex shader
-			{
-				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-				nullptr,
-				0,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				vertexShaderModule.Get(),
-				"main",
-				nullptr
-			},
-
-			//Fragment shader
-			{
-				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-				nullptr,
-				0,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				fragmentShaderModule.Get(),
-				"main",
-				nullptr
-			}
-		};
-
-		std::vector<VkVertexInputBindingDescription> vertexBindingDesc =
-		{
-			{ 0, sizeof(VertexData), VK_VERTEX_INPUT_RATE_VERTEX }
-		};
-
-		std::vector<VkVertexInputAttributeDescription> vertexAttributeDesc =
-		{
-			{ 0, vertexBindingDesc[0].binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(struct VertexData, x) },
-			{ 1, vertexBindingDesc[0].binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(struct VertexData, r) },
-		};
-
-		VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-			nullptr,
-			0,
-			static_cast<uint32_t>(vertexBindingDesc.size()),
-			&vertexBindingDesc[0],
-			static_cast<uint32_t>(vertexAttributeDesc.size()),
-			&vertexAttributeDesc[0]
-		};
-
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-			nullptr,
-			0,
-			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
-			VK_FALSE
-		};
-
-		VkPipelineViewportStateCreateInfo viewportStateCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			nullptr,
-			0,
-			1,
-			nullptr,
-			1,
-			nullptr
-		};
-
-		VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-			nullptr,
-			0,
-			VK_FALSE,
-			VK_FALSE,
-			VK_POLYGON_MODE_FILL,
-			VK_CULL_MODE_BACK_BIT,
-			VK_FRONT_FACE_COUNTER_CLOCKWISE,
-			VK_FALSE,
-			0.0f,
-			0.0f,
-			0.0f,
-			1.0f,
-		};
-
-		VkPipelineMultisampleStateCreateInfo multisampleStageCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-			nullptr,
-			0,
-			VK_SAMPLE_COUNT_1_BIT,
-			VK_FALSE,
-			1.0f,
-			nullptr,
-			VK_FALSE,
-			VK_FALSE,
-		};
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachmentState =
-		{
-			VK_FALSE,
-			VK_BLEND_FACTOR_ONE,
-			VK_BLEND_FACTOR_ZERO,
-			VK_BLEND_OP_ADD,
-			VK_BLEND_FACTOR_ONE,
-			VK_BLEND_FACTOR_ZERO,
-			VK_BLEND_OP_ADD,
-			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-		};
-
-		VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-			nullptr,
-			0,
-			VK_FALSE,
-			VK_LOGIC_OP_COPY,
-			1,
-			&colorBlendAttachmentState,
-			{ 0.0, 0.0, 0.0, 0.0 }
-		};
-
-		std::vector<VkDynamicState> dynamicStates =
-		{
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			nullptr,
-			0,
-			static_cast<uint32_t>(dynamicStates.size()),
-			&dynamicStates[0]
-		};
-		
-		Tools::AutoDeleter<VkPipelineLayout, PFN_vkDestroyPipelineLayout> pipelineLayout = CreatePipelineLayout();
-		if (!pipelineLayout)
-			return false;
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-			nullptr,
-			0,
-			static_cast<uint32_t>(shaderStageCreateInfo.size()),
-			&shaderStageCreateInfo[0],
-			&vertexInputStateCreateInfo,
-			&inputAssemblyStateCreateInfo,
-			nullptr,
-			&viewportStateCreateInfo,
-			&rasterizationStateCreateInfo,
-			&multisampleStageCreateInfo,
-			nullptr,
-			&colorBlendStateCreateInfo,
-			&dynamicStateCreateInfo,
-			pipelineLayout.Get(),
-			Vulkan.RenderPass,
-			0,
-			VK_NULL_HANDLE,
-			-1
-		};
-
-		if (vkCreateGraphicsPipelines(Vulkan.Device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Vulkan.GraphicsPipeline) != VK_SUCCESS)
-		{
-			std::cout << "Could not create graphics pipeline" << std::endl;
-			return false;
-		}
-
-		return true;
-	}
-
-	bool StrikeRenderer::CreateVertexBuffer()
-	{
-		const std::vector<float>& vertexData = GetVertexData();
-
-		Vulkan.VertexBuffer.Size = static_cast<uint32_t>(vertexData.size() *  sizeof(vertexData[0]));
-		if (!CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.VertexBuffer))
-		{
-			std::cout << "Could not create vertex buffer" << std::endl;
-			return false;
-		}
-		
-		return true;
-	}
-
-	bool StrikeRenderer::CreateStagingBuffer()
-	{
-		Vulkan.StagingBuffer.Size = 4000;
-		if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, Vulkan.StagingBuffer))
-		{
-			std::cout << "Could not staging buffer" << std::endl;
-			return false;
-		}
-
-		return true;
-	}
-
-	bool StrikeRenderer::CopyVertexData()
-	{
-		//Prepare data in the staging buffer
-		const std::vector<float>& vertexData = GetVertexData();
-
-		void* stagingBufferMemoryPointer;
-		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.VertexBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
-		{
-			std::cout << "Could not map memory an upload data to a staging buffer" << std::endl;
-			return false;
-		}
-
-		memcpy(stagingBufferMemoryPointer, &vertexData[0], Vulkan.VertexBuffer.Size);
-
-		VkMappedMemoryRange flushRange =
-		{
-			VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-			nullptr,
-			Vulkan.StagingBuffer.Memory,
-			0,
-			Vulkan.VertexBuffer.Size
-		};
-		vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
-
-		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
-
-		//Prepare command buffer to copy data from the staging buffer to the vertex buffer
-		VkCommandBufferBeginInfo cmdBufferBeginInfo =
-		{
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			nullptr,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			nullptr
-		};
-
-		VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
-
-		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
-
-		VkBufferCopy bufferCopyInfo =
-		{
-			0,
-			0,
-			Vulkan.VertexBuffer.Size
-		};
-		vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.VertexBuffer.Handle, 1, &bufferCopyInfo);
-	
-		VkBufferMemoryBarrier bufferMemoryBarrier =
-		{
-			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-			nullptr,
-			VK_ACCESS_MEMORY_WRITE_BIT,
-			VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
-			VK_QUEUE_FAMILY_IGNORED,
-			VK_QUEUE_FAMILY_IGNORED,
-			Vulkan.VertexBuffer.Handle,
-			0,
-			VK_WHOLE_SIZE
-		};
-		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
-	
-		vkEndCommandBuffer(cmdBuffer);
-
-		//Submit cmd buffer and copy data from the staging buffer to the vertex buffer
-		VkSubmitInfo submitInfo =
-		{
-			VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			nullptr,
-			0,
-			nullptr,
-			nullptr,
-			1,
-			&cmdBuffer,
-			0,
-			nullptr
-		};
-
-		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE))
-			return false;
-
-		vkDeviceWaitIdle(Vulkan.Device);
-		
-		return true;
-	}
-
-	bool StrikeRenderer::CreateRenderingResources()
-	{
-		if (!CreateCommandPool(Vulkan.GraphicsQueue.FamilyIndex, &Vulkan.CommandPool))
-			return false;
-
-		for (size_t i = 0; i < Vulkan.RenderingResources.size(); ++i)
-		{
-			if(!AllocateCommandBuffers(Vulkan.CommandPool, 1, &Vulkan.RenderingResources[i].CommandBuffer))
-				return false;
-
-			if (!CreateSemaphores(&Vulkan.RenderingResources[i].ImageAvailableSemaphore))
-				return false;
-
-			if (!CreateSemaphores(&Vulkan.RenderingResources[i].FinishedRenderingSemaphore))
-				return false;
-
-			if(!CreateFences(VK_FENCE_CREATE_SIGNALED_BIT, &Vulkan.RenderingResources[i].Fence))
-				return false;
-
-		}
-
-
-		return true;
-	}
-
-	bool StrikeRenderer::CreateSemaphores(VkSemaphore* semaphore)
-	{
-		VkSemaphoreCreateInfo semaphoreCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-			nullptr,
-			0
-		};
-
-		if (vkCreateSemaphore(Vulkan.Device, &semaphoreCreateInfo, nullptr, semaphore) != VK_SUCCESS)
-		{
-			std::cout << "Could not create semaphore" << std::endl;
-			return false;
-		}
-		return true;
-	}
-
-	bool StrikeRenderer::CreateCommandBuffers()
-	{
-		if (!CreateCommandPool(Vulkan.GraphicsQueue.FamilyIndex, &Vulkan.CommandPool))
-		{
-			std::cout << "Could not create command pool" << std::endl;
-			return false;
-		}
-
-		for (size_t i = 0; i < Vulkan.RenderingResources.size(); ++i)
-		{
-			if (!AllocateCommandBuffers(Vulkan.CommandPool, 1, &Vulkan.RenderingResources[i].CommandBuffer))
-			{
-				std::cout << "Could not allocate command buffer" << std::endl;
-				return false;
-			}
-		}
-		return true;
-	}
-
-	bool StrikeRenderer::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPool* pool)
-	{
-		VkCommandPoolCreateInfo cmdPoolCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-			nullptr,
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-			queueFamilyIndex
-		};
-
-		if (vkCreateCommandPool(Vulkan.Device, &cmdPoolCreateInfo, nullptr, pool) != VK_SUCCESS)
-		{
-			std::cout << "Could not create command pool" << std::endl;
-			return false;
-		}
-
-		return true;
-	}
-
-	bool StrikeRenderer::AllocateCommandBuffers(VkCommandPool pool, uint32_t count, VkCommandBuffer* commandBuffers)
-	{
-		VkCommandBufferAllocateInfo cmdBufferAllocateInfo =
-		{
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			nullptr,
-			pool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			count
-		};
-
-		if (vkAllocateCommandBuffers(Vulkan.Device, &cmdBufferAllocateInfo, commandBuffers) != VK_SUCCESS)
-		{
-			std::cout << "Could not allocate command buffer" << std::endl;
-			return false;
-		}
-
-		return true;
-	}
-
-	bool StrikeRenderer::AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory)
-	{
-		VkMemoryRequirements bufferMemoryRequirements;
-		vkGetBufferMemoryRequirements(Vulkan.Device, buffer, &bufferMemoryRequirements);
-
-		VkPhysicalDeviceMemoryProperties memoryProperties;
-		vkGetPhysicalDeviceMemoryProperties(Vulkan.PhysicalDevice, &memoryProperties);
-	
-		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-		{
-			if ((bufferMemoryRequirements.memoryTypeBits & (1 << i)) && ((memoryProperties.memoryTypes[i].propertyFlags & property) == property))
-			{
-				VkMemoryAllocateInfo memoryAllocateInfo =
-				{
-					VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-					nullptr,
-					bufferMemoryRequirements.size,
-					i
-				};
-
-				if (vkAllocateMemory(Vulkan.Device, &memoryAllocateInfo, nullptr, memory) == VK_SUCCESS)
-					return true;
-			}
-		}
-
-		return false;
-	}
-
-	bool StrikeRenderer::CreateFences(VkFenceCreateFlags flags, VkFence* fence)
-	{
-		VkFenceCreateInfo fenceCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-			nullptr,
-			flags
-		};
-
-		if (vkCreateFence(Vulkan.Device, &fenceCreateInfo, nullptr, fence) != VK_SUCCESS)
-		{
-			std::cout << "Could not create a fence" << std::endl;
-			return false;
-		}
-		return true;
-	}
-
-	bool StrikeRenderer::PrepareFrame(VkCommandBuffer cmdBuffer, const ImageParameters& imgParams, VkFramebuffer& frameBuffer)
-	{
-		if (!CreateFrameBuffers(frameBuffer, imgParams.View))
-			return false;
-
-		VkCommandBufferBeginInfo cmdBufferBeginInfo =
-		{
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			nullptr,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			nullptr
-		};
-
-		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
-
-		VkImageSubresourceRange imgSubresourceRange =
-		{
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			0,
-			1,
-			0,
-			1
-		};
-
-		if (Vulkan.PresentQueue.Handle != Vulkan.GraphicsQueue.Handle)
-		{
-			VkImageMemoryBarrier barrierFromPresentToDraw =
-			{
-				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-				nullptr,
-				VK_ACCESS_MEMORY_READ_BIT,
-				VK_ACCESS_MEMORY_READ_BIT,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				Vulkan.PresentQueue.FamilyIndex,
-				Vulkan.GraphicsQueue.FamilyIndex,
-				imgParams.Handle,
-				imgSubresourceRange
-			};
-			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromPresentToDraw);
-		}
-
-		VkClearValue clearValue =
-		{
-			{ 1.0f, 0.8f, 0.4f, 0.0f },
-		};
-
-		VkRenderPassBeginInfo renderPassBeginInfo =
-		{
-			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-			nullptr,
-			Vulkan.RenderPass,
-			frameBuffer,
-			{
-				{ 0, 0 },
-				Vulkan.SwapChain.Extent,
-			},
-			1,
-			&clearValue
-		};
-
-		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-	
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.GraphicsPipeline);
-
-		VkViewport viewport =
-		{
-			0.0f,
-			0.0f,
-			static_cast<float>(Vulkan.SwapChain.Extent.width),
-			static_cast<float>(Vulkan.SwapChain.Extent.height),
-			0.0f,
-			1.0f,
-		};
-
-		VkRect2D scissors =
-		{
-			{ 0, 0 },
-			{ Vulkan.SwapChain.Extent.width, Vulkan.SwapChain.Extent.height }
-		};
-
-		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
-		vkCmdSetScissor(cmdBuffer, 0, 1, &scissors);
-
-		VkDeviceSize offset = 0;
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &Vulkan.VertexBuffer.Handle, &offset);
-
-		vkCmdDraw(cmdBuffer, 4, 1, 0, 0);
-
-		vkCmdEndRenderPass(cmdBuffer);
-
-		if (Vulkan.GraphicsQueue.Handle != Vulkan.PresentQueue.Handle)
-		{
-			VkImageMemoryBarrier barrierFromDrawToPresent =
-			{
-				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-				nullptr,
-				VK_ACCESS_MEMORY_READ_BIT,
-				VK_ACCESS_MEMORY_READ_BIT,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				Vulkan.GraphicsQueue.FamilyIndex,
-				Vulkan.PresentQueue.FamilyIndex,
-				imgParams.Handle,
-				imgSubresourceRange
-			};
-			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromDrawToPresent);
-		}
-
-		if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS)
-		{
-			std::cout << "Could not record command buffer" << std::endl;
-			return false;
-		}
-		return true;
-	}
-
-	bool StrikeRenderer::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlagBits memoryProperty, BufferParameters& buffer)
-	{
-		VkBufferCreateInfo bufferCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-			nullptr,
-			0,
-			buffer.Size,
-			usageFlags,
-			VK_SHARING_MODE_EXCLUSIVE,
-			0,
-			nullptr
-		};
-
-		if (vkCreateBuffer(Vulkan.Device, &bufferCreateInfo, nullptr, &buffer.Handle) != VK_SUCCESS)
-		{
-			std::cout << "Could not create buffer" << std::endl;
-			return false;
-		}
-
-		if (!AllocateBufferMemory(buffer.Handle, memoryProperty, &buffer.Memory))
-		{
-			std::cout << "Could not allocate memory for a buffer" << std::endl;
-			return false;
-		}
-
-		if (vkBindBufferMemory(Vulkan.Device, buffer.Handle, buffer.Memory, 0) != VK_SUCCESS)
-		{
-			std::cout << "Could not bind memory to a buffer" << std::endl;
-			return false;
-		}
-		return true;
-	}
-
-	void StrikeRenderer::DestroyBuffer(BufferParameters& buffer)
-	{
-		if (buffer.Handle != VK_NULL_HANDLE)
-		{
-			vkDestroyBuffer(Vulkan.Device, buffer.Handle, nullptr);
-			buffer.Handle = VK_NULL_HANDLE;
-		}
-
-		if (buffer.Memory != VK_NULL_HANDLE)
-		{
-			vkFreeMemory(Vulkan.Device, buffer.Memory, nullptr);
-			buffer.Memory = VK_NULL_HANDLE;
-		}
-	}
-
-	const std::vector<float>& StrikeRenderer::GetVertexData() const
-	{
-		static const std::vector<float> vertexData =
-		{			
-			-0.7f, -0.7f, 0.0f, 1.0f,
-			1.0f, 0.0f, 0.0f, 0.0f,			
-			
-			-0.7f, 0.7f, 0.0f, 1.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,			
-			
-			0.7f, -0.7f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,			
-			
-			0.7f, 0.7f, 0.0f, 1.0f,
-			0.3f, 0.3f, 0.3f, 0.0f
-		};
-
-		return vertexData;
-	}
-
-	bool StrikeRenderer::RecordCommandBuffers()
-	{
-		VkCommandBufferBeginInfo graphicsCmdBufferBeginInfo =
-		{
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			nullptr,
-			VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-			nullptr
-		};
-
-		VkImageSubresourceRange imgSubresourceRange =
-		{
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			0,
-			1,
-			0,
-			1
-		};
-
-		VkClearValue clearValue =
-		{
-			{ 1.0f, 0.8f, 0.4f, 0.0f },
-		};
-
-		const std::vector<ImageParameters>& swapChainImages = Vulkan.SwapChain.Images;
-
-		for (size_t i = 0; i < Vulkan.GraphicsQueueCmdBuffers.size(); ++i)
-		{
-			vkBeginCommandBuffer(Vulkan.GraphicsQueueCmdBuffers[i], &graphicsCmdBufferBeginInfo);
-
-			if (Vulkan.PresentQueue.Handle != Vulkan.GraphicsQueue.Handle)
-			{
-				VkImageMemoryBarrier barrierFromPresentToDraw =
-				{
-					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-					nullptr,
-					VK_ACCESS_MEMORY_READ_BIT,
-					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-					Vulkan.PresentQueue.FamilyIndex,
-					Vulkan.GraphicsQueue.FamilyIndex,
-					swapChainImages[i].Handle,
-					imgSubresourceRange
-				};
-				vkCmdPipelineBarrier(Vulkan.GraphicsQueueCmdBuffers[i], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromPresentToDraw);
-
-			}
-
-			VkRenderPassBeginInfo renderPassBeginInfo =
-			{
-				VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-				nullptr,
-				Vulkan.RenderPass,
-				Vulkan.FrameBuffers[i],
-				{
-					{ 0, 0 },
-					{ 300, 300 }
-				},
-				1,
-				&clearValue
-			};
-
-			vkCmdBeginRenderPass(Vulkan.GraphicsQueueCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			vkCmdBindPipeline(Vulkan.GraphicsQueueCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.GraphicsPipeline);
-
-			vkCmdDraw(Vulkan.GraphicsQueueCmdBuffers[i], 3, 1, 0, 0);
-
-			vkCmdEndRenderPass(Vulkan.GraphicsQueueCmdBuffers[i]);
-
-			if (Vulkan.GraphicsQueue.Handle != Vulkan.PresentQueue.Handle)
-			{
-				VkImageMemoryBarrier barrierFromDrawToPresent =
-				{
-					VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-					nullptr,
-					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-					VK_ACCESS_MEMORY_READ_BIT,
-					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-					Vulkan.GraphicsQueue.FamilyIndex,
-					Vulkan.PresentQueue.FamilyIndex,
-					swapChainImages[i].Handle,
-					imgSubresourceRange
-				};
-				vkCmdPipelineBarrier(Vulkan.GraphicsQueueCmdBuffers[i], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromDrawToPresent);
-
-			}
-
-			if (vkEndCommandBuffer(Vulkan.GraphicsQueueCmdBuffers[i]) != VK_SUCCESS)
-			{
-				std::cout << "Could not record command buffer" << std::endl;
-				return false;
-			}
-
-		}
-		return true;
-
-
-		/* OLD
-		uint32_t imageCount = static_cast<uint32_t>(Vulkan.PresentQueueCmdBuffers.size());
-
-		std::vector<VkImage> swapChainImages(imageCount);
-		if (vkGetSwapchainImagesKHR(Vulkan.Device, Vulkan.SwapChain.Handle, &imageCount, swapChainImages.data()) != VK_SUCCESS)
-		{
-			std::cout << "Could not get swap chain images" << std::endl;
-			return false;
-		}
-
-		VkCommandBufferBeginInfo cmdBufferBeginInfo =
-		{
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			nullptr,
-			VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-			nullptr
-		};
-
-		VkClearColorValue clearColor =
-		{
-			{ 1.0f, 0.8f, 0.4f, 0.0f }
-		};
-
-		VkImageSubresourceRange imageSubresourceRange =
-		{
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			0,
-			1,
-			0,
-			1
-		};
-
-		for (uint32_t i = 0; i < imageCount; ++i)
-		{
-			VkImageMemoryBarrier barrierFromPresentToClear =
-			{
-				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-				nullptr,
-				VK_ACCESS_MEMORY_READ_BIT,
-				VK_ACCESS_TRANSFER_WRITE_BIT,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_QUEUE_FAMILY_IGNORED,
-				VK_QUEUE_FAMILY_IGNORED,
-				swapChainImages[i],
-				imageSubresourceRange
-			};
-
-			VkImageMemoryBarrier barrierFromClearToPresent =
-			{
-				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-				nullptr,
-				VK_ACCESS_TRANSFER_WRITE_BIT,
-				VK_ACCESS_MEMORY_READ_BIT,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				VK_QUEUE_FAMILY_IGNORED,
-				VK_QUEUE_FAMILY_IGNORED,
-				swapChainImages[i],
-				imageSubresourceRange
-			};
-
-			vkBeginCommandBuffer(Vulkan.PresentQueueCmdBuffers[i], &cmdBufferBeginInfo);
-			vkCmdPipelineBarrier(Vulkan.PresentQueueCmdBuffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromPresentToClear);
-
-			vkCmdClearColorImage(Vulkan.PresentQueueCmdBuffers[i], swapChainImages[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &imageSubresourceRange);
-
-			vkCmdPipelineBarrier(Vulkan.PresentQueueCmdBuffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromClearToPresent);
-			if (vkEndCommandBuffer(Vulkan.PresentQueueCmdBuffers[i]) != VK_SUCCESS)
-			{
-				std::cout << "Could not record command buffers" << std::endl;
-				return false;
-			}
-		}
-		return true;*/
-	}
-
-	bool StrikeRenderer::Draw()
-	{
-		static size_t resourceIndex = 0;
-		RenderingResourceData& currentRenderingResource = Vulkan.RenderingResources[resourceIndex];
-		VkSwapchainKHR swapChain = Vulkan.SwapChain.Handle;
-		uint32_t imageIndex;
-
-		resourceIndex = (resourceIndex + 1) % VkParams::ResourcesCount;
-
-		if (vkWaitForFences(Vulkan.Device, 1, &currentRenderingResource.Fence, VK_FALSE, 1000000000) != VK_SUCCESS)
-		{
-			std::cout << "Waiting for fence takes too long" << std::endl;
-			return false;
-		}
-		vkResetFences(Vulkan.Device, 1, &currentRenderingResource.Fence);
-
-		VkResult res = vkAcquireNextImageKHR(Vulkan.Device, Vulkan.SwapChain.Handle, UINT64_MAX, currentRenderingResource.ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-		switch (res)
-		{
-		case VK_SUCCESS:
-		case VK_SUBOPTIMAL_KHR:
-			break;
-		case VK_ERROR_OUT_OF_DATE_KHR:
-			return OnWindowSizeChanged();
-		default:
-			std::cout << "Problem occurred during swap chain image acquisition" << std::endl;
-			return false;
-		}
-
-		if (!PrepareFrame(currentRenderingResource.CommandBuffer, Vulkan.SwapChain.Images[imageIndex], currentRenderingResource.FrameBuffer))
-			return false;
-
-		VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		VkSubmitInfo submitInfo =
-		{
-			VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			nullptr,
-			1,
-			&currentRenderingResource.ImageAvailableSemaphore,
-			&waitDstStageMask,
-			1,
-			&currentRenderingResource.CommandBuffer,
-			1,
-			&currentRenderingResource.FinishedRenderingSemaphore
-		};
-
-		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, currentRenderingResource.Fence) != VK_SUCCESS)
-			return false;
-
-		VkPresentInfoKHR presentInfo =
-		{
-			VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-			nullptr,
-			1,
-			&currentRenderingResource.FinishedRenderingSemaphore,
-			1,
-			&swapChain,
-			&imageIndex,
-			nullptr
-		};
-
-		res = vkQueuePresentKHR(Vulkan.PresentQueue.Handle, &presentInfo);
-
-		switch (res)
-		{
-		case VK_SUCCESS:
-			break;
-		case VK_ERROR_OUT_OF_DATE_KHR:
-		case VK_SUBOPTIMAL_KHR:
-			return OnWindowSizeChanged();
-		default:
-			std::cout << "Problem occurred during image presentation" << std::endl;
-			return false;
-		}
-		return true;
-	}
-	
 	bool StrikeRenderer::CreateSwapChainImageViews()
 	{
 
@@ -1766,7 +797,7 @@ namespace StrikeEngine
 
 		return true;
 	}
-	
+
 	bool StrikeRenderer::CreateSwapChain()
 	{
 		m_CanRender = false;
@@ -1776,7 +807,7 @@ namespace StrikeEngine
 
 		for (size_t i = 0; i < Vulkan.SwapChain.Images.size(); ++i)
 		{
-			if (Vulkan.SwapChain.Images[i].View != VK_NULL_HANDLE) 
+			if (Vulkan.SwapChain.Images[i].View != VK_NULL_HANDLE)
 			{
 				vkDestroyImageView(Vulkan.Device, Vulkan.SwapChain.Images[i].View, nullptr);
 				Vulkan.SwapChain.Images[i].View = VK_NULL_HANDLE;
@@ -1894,8 +925,1409 @@ namespace StrikeEngine
 		Vulkan.SwapChain.Extent = desiredExtent;
 		return CreateSwapChainImageViews();
 	}
+
+	bool StrikeRenderer::CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView)
+	{
+		if (frameBuffer != VK_NULL_HANDLE)
+			vkDestroyFramebuffer(Vulkan.Device, frameBuffer, nullptr);
+
+		VkFramebufferCreateInfo frameBufferCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+			nullptr,
+			0,
+			Vulkan.RenderPass,
+			1,
+			&imageView,
+			Vulkan.SwapChain.Extent.width,
+			Vulkan.SwapChain.Extent.height,
+			1
+		};
+
+		if (vkCreateFramebuffer(Vulkan.Device, &frameBufferCreateInfo, nullptr, &frameBuffer) != VK_SUCCESS)
+		{
+			std::cout << "Could not create a framebuffer" << std::endl;
+			return false;
+		}
+
+		return true;
+	}
+
+	bool StrikeRenderer::PrepareFrame(VkCommandBuffer cmdBuffer, const ImageParameters& imgParams, VkFramebuffer& frameBuffer)
+	{
+		if (!CreateFrameBuffers(frameBuffer, imgParams.View))
+			return false;
+
+		VkCommandBufferBeginInfo cmdBufferBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			nullptr,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			nullptr
+		};
+
+		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+
+		VkImageSubresourceRange imgSubresourceRange =
+		{
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			1,
+			0,
+			1
+		};
+
+		if (Vulkan.PresentQueue.Handle != Vulkan.GraphicsQueue.Handle)
+		{
+			VkImageMemoryBarrier barrierFromPresentToDraw =
+			{
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				nullptr,
+				VK_ACCESS_MEMORY_READ_BIT,
+				VK_ACCESS_MEMORY_READ_BIT,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				Vulkan.PresentQueue.FamilyIndex,
+				Vulkan.GraphicsQueue.FamilyIndex,
+				imgParams.Handle,
+				imgSubresourceRange
+			};
+			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromPresentToDraw);
+		}
+
+		VkClearValue clearValue =
+		{
+			{ 1.0f, 0.8f, 0.4f, 0.0f },
+		};
+
+		VkRenderPassBeginInfo renderPassBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			nullptr,
+			Vulkan.RenderPass,
+			frameBuffer,
+			{
+				{ 0, 0 },
+				Vulkan.SwapChain.Extent,
+			},
+			1,
+			&clearValue
+		};
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.GraphicsPipeline);
+
+		VkViewport viewport =
+		{
+			0.0f,
+			0.0f,
+			static_cast<float>(Vulkan.SwapChain.Extent.width),
+			static_cast<float>(Vulkan.SwapChain.Extent.height),
+			0.0f,
+			1.0f,
+		};
+
+		VkRect2D scissors =
+		{
+			{ 0, 0 },
+			{ Vulkan.SwapChain.Extent.width, Vulkan.SwapChain.Extent.height }
+		};
+
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissors);
+
+		VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &Vulkan.VertexBuffer.Handle, &offset);
+
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.PipelineLayout, 0, 1, &Vulkan.DescriptorSet.Handle, 0, nullptr);
+
+		vkCmdDraw(cmdBuffer, 4, 1, 0, 0);
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		if (Vulkan.GraphicsQueue.Handle != Vulkan.PresentQueue.Handle)
+		{
+			VkImageMemoryBarrier barrierFromDrawToPresent =
+			{
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				nullptr,
+				VK_ACCESS_MEMORY_READ_BIT,
+				VK_ACCESS_MEMORY_READ_BIT,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				Vulkan.GraphicsQueue.FamilyIndex,
+				Vulkan.PresentQueue.FamilyIndex,
+				imgParams.Handle,
+				imgSubresourceRange
+			};
+			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromDrawToPresent);
+		}
+
+		if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS)
+		{
+			std::cout << "Could not record command buffer" << std::endl;
+			return false;
+		}
+		return true;
+	}
+
+
+	void StrikeRenderer::DestroyBuffer(BufferParameters& buffer)
+	{
+		if (buffer.Handle != VK_NULL_HANDLE)
+		{
+			vkDestroyBuffer(Vulkan.Device, buffer.Handle, nullptr);
+			buffer.Handle = VK_NULL_HANDLE;
+		}
+
+		if (buffer.Memory != VK_NULL_HANDLE)
+		{
+			vkFreeMemory(Vulkan.Device, buffer.Memory, nullptr);
+			buffer.Memory = VK_NULL_HANDLE;
+		}
+	}
+
+	const std::vector<float>& StrikeRenderer::GetVertexData() const
+	{
+		static const std::vector<float> vertexData =
+		{
+			 -170.0f, -170.0f, 0.0f, 1.0f,
+		  -0.1f, -0.1f,
+		  //
+		  -170.0f, 170.0f, 0.0f, 1.0f,
+		  -0.1f, 1.1f,
+		  //
+		  170.0f, -170.0f, 0.0f, 1.0f,
+		  1.1f, -0.1f,
+		  //
+		  170.0f, 170.0f, 0.0f, 1.0f,
+		  1.1f, 1.1f,
+		};
+
+		return vertexData;
+	}
+
+	Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> StrikeRenderer::CreateShaderModule(const char* filename)
+	{
+		const std::vector<char> code = Tools::GetBinaryFileContents(filename);
+		if (code.size() == 0)
+			return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>();
+
+		VkShaderModuleCreateInfo shaderModuleCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+			nullptr,
+			0,
+			code.size(),
+			reinterpret_cast<const uint32_t*>(&code[0])
+		};
+
+		VkShaderModule shaderModule;
+		if (vkCreateShaderModule(Vulkan.Device, &shaderModuleCreateInfo, nullptr, &shaderModule) != VK_SUCCESS)
+		{
+			std::cout << "Could not create shader module from a " << filename << " file" << std::endl;
+			return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>();
+		}
+
+		return Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule>(shaderModule, vkDestroyShaderModule, Vulkan.Device);
+	}
+
+	bool StrikeRenderer::CopyVertexData()
+	{
+
+		//Prepare data in the staging buffer
+		const std::vector<float>& vertexData = GetVertexData();
+
+		void* stagingBufferMemoryPointer;
+		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.VertexBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
+		{
+			std::cout << "Could not map memory an upload data to a staging buffer" << std::endl;
+			return false;
+		}
+
+		memcpy(stagingBufferMemoryPointer, &vertexData[0], Vulkan.VertexBuffer.Size);
+
+		VkMappedMemoryRange flushRange =
+		{
+			VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+			nullptr,
+			Vulkan.StagingBuffer.Memory,
+			0,
+			Vulkan.VertexBuffer.Size
+		};
+		vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
+
+		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+
+		//Prepare command buffer to copy data from the staging buffer to the vertex buffer
+		VkCommandBufferBeginInfo cmdBufferBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			nullptr,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			nullptr
+		};
+
+		VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
+
+		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+
+		VkBufferCopy bufferCopyInfo =
+		{
+			0,
+			0,
+			Vulkan.VertexBuffer.Size
+		};
+		vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.VertexBuffer.Handle, 1, &bufferCopyInfo);
+
+		VkBufferMemoryBarrier bufferMemoryBarrier =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			nullptr,
+			VK_ACCESS_MEMORY_WRITE_BIT,
+			VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			Vulkan.VertexBuffer.Handle,
+			0,
+			VK_WHOLE_SIZE
+		};
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
+
+		vkEndCommandBuffer(cmdBuffer);
+
+		//Submit cmd buffer and copy data from the staging buffer to the vertex buffer
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			0,
+			nullptr,
+			nullptr,
+			1,
+			&cmdBuffer,
+			0,
+			nullptr
+		};
+
+		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE))
+			return false;
+
+		vkDeviceWaitIdle(Vulkan.Device);
+
+		return true;
+
+
+	}
+
+	bool StrikeRenderer::CopyTextureData(char* textureData, uint32_t dataSize, uint32_t width, uint32_t height)
+	{
+
+		//Prepare data in the staging buffer
+		void* stagingBufferMemoryPtr;
+		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, dataSize, 0, &stagingBufferMemoryPtr) != VK_SUCCESS)
+		{
+			std::cout << "Could not map memory and upload texture data to a staging buffer" << std::endl;
+			return false;
+		}
+
+		memcpy(stagingBufferMemoryPtr, textureData, dataSize);
+
+		VkMappedMemoryRange flushRange =
+		{
+			VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+			nullptr,
+			Vulkan.StagingBuffer.Memory,
+			0,
+			dataSize
+		};
+
+		vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
+
+		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+
+		//Prepare cmd buffer to copy data from the staging buffer to the vertex buffer
+		VkCommandBufferBeginInfo cmdBufferBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			nullptr,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			nullptr
+		};
+
+		VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
+
+		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+
+		VkImageSubresourceRange imgSubresourceRange =
+		{
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			1,
+			0,
+			1
+		};
+
+		VkImageMemoryBarrier imgMemoryBarrierFromUndefinedToTransferDst =
+		{
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			nullptr,
+			0,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			Vulkan.Image.Handle,
+			imgSubresourceRange
+		};
+
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imgMemoryBarrierFromUndefinedToTransferDst);
+
+		VkBufferImageCopy bufferImageCopyInfo =
+		{
+			0,
+			0,
+			0,
+			{
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				0,
+				0,
+				1
+			},
+			{
+				0,
+				0,
+				0
+			},
+			{
+				width,
+				height,
+				1
+			}
+		};
+
+		vkCmdCopyBufferToImage(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.Image.Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferImageCopyInfo);
+
+		VkImageMemoryBarrier imgMemoryBarrierFromTransferToShaderRead =
+		{
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			nullptr,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_ACCESS_SHADER_READ_BIT,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			Vulkan.Image.Handle,
+			imgSubresourceRange
+		};
+
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imgMemoryBarrierFromTransferToShaderRead);
+
+		vkEndCommandBuffer(cmdBuffer);
+
+		//Submit cmd buffer and copy data from the staging buffer to the vertex buffer
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			0,
+			nullptr,
+			nullptr,
+			1,
+			&cmdBuffer,
+			0,
+			nullptr
+		};
+
+		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+			return false;
+
+		vkDeviceWaitIdle(Vulkan.Device);
+
+		return true;
+
+	}
+
+	bool StrikeRenderer::CopyUniformBufferData()
+	{
+		const std::array<float, 16> uniformData = GetUniformBufferData();
+
+		void* stagingBufferMemoryPointer;
+		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.UniformBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
+		{
+			std::cout << "Could not map memory and upload data to a staging buffer" << std::endl;
+			return false;
+		}
+
+		memcpy(stagingBufferMemoryPointer, uniformData.data(), Vulkan.UniformBuffer.Size);
+
+		VkMappedMemoryRange flushRange =
+		{
+			VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+			nullptr,
+			Vulkan.StagingBuffer.Memory,
+			0,
+			Vulkan.UniformBuffer.Size
+		};
+
+		vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
+
+		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+
+		//Prepare cmd buffer to copy data from the staging buffer to the uniform buffer
+		VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
+
+		VkCommandBufferBeginInfo cmdBufferBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			nullptr,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			nullptr
+		};
+
+		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+
+		VkBufferCopy bufferCopyInfo =
+		{
+			0,
+			0,
+			Vulkan.UniformBuffer.Size
+		};
+		vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.UniformBuffer.Handle, 1, &bufferCopyInfo);
+
+		VkBufferMemoryBarrier bufferMemoryBarrier =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			nullptr,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_ACCESS_UNIFORM_READ_BIT,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			Vulkan.UniformBuffer.Handle,
+			0,
+			VK_WHOLE_SIZE
+		};
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
+
+		vkEndCommandBuffer(cmdBuffer);
+
+		//Submit the cmd buffer and copy data from the staging buffer to the vertex buffer
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			0,
+			nullptr,
+			nullptr,
+			1,
+			&cmdBuffer,
+			0,
+			nullptr
+		};
+
+		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+			return false;
+
+		vkDeviceWaitIdle(Vulkan.Device);
+		return true;
+
+	}
+
+	const std::array<float, 16> StrikeRenderer::GetUniformBufferData() const
+	{
+		float halfWidth = static_cast<float>(Vulkan.SwapChain.Extent.width) * 0.5f;
+		float halfHeight = static_cast<float>(Vulkan.SwapChain.Extent.height) * 0.5f;
+
+		return Tools::GetOrthographicProjectionMatrix(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0f, 1.0f);
+	}
+
+	bool StrikeRenderer::CreateDescriptorSetLayout()
+{
+	std::vector<VkDescriptorSetLayoutBinding> layoutBindings =
+	{
+		{
+			0,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			1,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			nullptr
+		},
+		{
+			1,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			1,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			nullptr
+		}
+
+	};
+
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo =
+	{
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		nullptr,
+		0,
+		static_cast<uint32_t>(layoutBindings.size()),
+		layoutBindings.data()
+	};
+
+	if (vkCreateDescriptorSetLayout(Vulkan.Device, &descriptorSetLayoutCreateInfo, nullptr, &Vulkan.DescriptorSet.Layout) != VK_SUCCESS)
+	{
+		std::cout << "Could not create descriptor set layout" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+	bool StrikeRenderer::CreateDescriptorPool()
+{
+	std::vector<VkDescriptorPoolSize> poolSizes =
+	{
+		{
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			1
+		},
+		{
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			1
+		}
+	};
+
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo =
+	{
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		nullptr,
+		0,
+		1,
+		static_cast<uint32_t>(poolSizes.size()),
+		poolSizes.data()
+	};
+
+	if (vkCreateDescriptorPool(Vulkan.Device, &descriptorPoolCreateInfo, nullptr, &Vulkan.DescriptorSet.Pool) != VK_SUCCESS)
+	{
+		std::cout << "Could not create descriptor pool" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+	bool StrikeRenderer::AllocateDescriptorSet()
+{
+	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo =
+	{
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		nullptr,
+		Vulkan.DescriptorSet.Pool,
+		1,
+		&Vulkan.DescriptorSet.Layout
+	};
+
+	if (vkAllocateDescriptorSets(Vulkan.Device, &descriptorSetAllocateInfo, &Vulkan.DescriptorSet.Handle) != VK_SUCCESS)
+	{
+		std::cout << "Could not allocate descriptor set" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+	bool StrikeRenderer::UpdateDescriptorSet()
+{
+	VkDescriptorImageInfo imgInfo =
+	{
+		Vulkan.Image.Sampler,
+		Vulkan.Image.View,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	};
+
+	VkDescriptorBufferInfo bufferInfo =
+	{
+		Vulkan.UniformBuffer.Handle,
+		0,
+		Vulkan.UniformBuffer.Size
+	};
+
+	std::vector<VkWriteDescriptorSet> descriptorWrites =
+	{
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			nullptr,
+			Vulkan.DescriptorSet.Handle,
+			0,
+			0,
+			1,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			&imgInfo,
+			nullptr,
+			nullptr
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			nullptr,
+			Vulkan.DescriptorSet.Handle,
+			1,
+			0,
+			1,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			nullptr,
+			&bufferInfo,
+			nullptr
+		}
+	};
+
+	vkUpdateDescriptorSets(Vulkan.Device, static_cast<uint32_t>(descriptorWrites.size()), &descriptorWrites[0], 0, nullptr);
+	return true;
+}
+
+	bool StrikeRenderer::CreateRenderPass()
+{
+	VkAttachmentDescription attachmentDesc[] =
+	{
+		{
+			0,
+			Vulkan.SwapChain.Format,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			VK_ATTACHMENT_STORE_OP_STORE,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+		}
+	};
+
+	VkAttachmentReference colorAttachmentRef[] =
+	{
+		{
+			0,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		}
+	};
+
+	VkSubpassDescription subpassDesc[] =
+	{
+		{
+			0,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			0,
+			nullptr,
+			1,
+			colorAttachmentRef,
+			nullptr,
+			nullptr,
+			0,
+			nullptr
+		}
+	};
+
+
+	std::vector<VkSubpassDependency> dependencies =
+	{
+		{
+			VK_SUBPASS_EXTERNAL,
+			0,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_ACCESS_MEMORY_READ_BIT,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_DEPENDENCY_BY_REGION_BIT
+		},
+		{
+			0,
+			VK_SUBPASS_EXTERNAL,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_ACCESS_MEMORY_READ_BIT,
+			VK_DEPENDENCY_BY_REGION_BIT
+		}
+	};
+
+	VkRenderPassCreateInfo renderPassCreateInfo =
+	{
+		VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		nullptr,
+		0,
+		1,
+		attachmentDesc,
+		1,
+		subpassDesc,
+		static_cast<uint32_t>(dependencies.size()),
+		dependencies.data()
+	};
+
+	if (vkCreateRenderPass(Vulkan.Device, &renderPassCreateInfo, nullptr, &Vulkan.RenderPass) != VK_SUCCESS)
+	{
+		std::cout << "Could not create render pass" << std::endl;
+		return false;
+	}
+	return true;
+}
+
+	bool StrikeRenderer::CreateTexture()
+{
+	int width = 0, height = 0, dataSize = 0;
+	std::vector textureData = Tools::GetImageData("../Data/texture.png", 4, &width, &height, nullptr, &dataSize);
+	if (textureData.size() == 0)
+		return false;
+
+	if (!CreateImage(width, height, &Vulkan.Image.Handle))
+	{
+		std::cout << "Could not create image" << std::endl;
+		return false;
+	}
+
+	if (!AllocateImageMemory(Vulkan.Image.Handle, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &Vulkan.Image.Memory))
+	{
+		std::cout << "Could not allocate memory for image" << std::endl;
+		return false;
+	}
+
+	if (vkBindImageMemory(Vulkan.Device, Vulkan.Image.Handle, Vulkan.Image.Memory, 0) != VK_SUCCESS)
+	{
+		std::cout << "Could not bind memory to an image" << std::endl;
+		return false;
+	}
+
+	if (!CreateImageView(Vulkan.Image))
+	{
+		std::cout << "Could not create image view" << std::endl;
+		return false;
+	}
+
+	if (!CreateSampler(&Vulkan.Image.Sampler))
+	{
+		std::cout << "Could not create sampler" << std::endl;
+		return false;
+	}
+
+	if (!CopyTextureData(&textureData[0], dataSize, width, height))
+	{
+		std::cout << "Could not upload texture data to device memory" << std::endl;
+		return false;
+	}
+
+
+
+	return true;
+}
+
+	bool StrikeRenderer::CreateRenderingResources()
+{
+	if (!CreateCommandBuffers())
+		return false;
+
+	if (!CreateSemaphore())
+		return false;
+
+	if (!CreateFences())
+		return false;
+
+
+	return true;
+}
+
+	bool StrikeRenderer::CreateStagingBuffer()
+{
+	Vulkan.StagingBuffer.Size = 1000000;
+	if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, Vulkan.StagingBuffer))
+	{
+		std::cout << "Could not staging buffer" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+	bool StrikeRenderer::Draw()
+	{
+
+		static size_t resourceIndex = 0;
+		RenderingResourceData& currentRenderingResource = Vulkan.RenderingResources[resourceIndex];
+		VkSwapchainKHR swapChain = Vulkan.SwapChain.Handle;
+		uint32_t imageIndex;
+
+		resourceIndex = (resourceIndex + 1) % VkParams::ResourcesCount;
+
+		if (vkWaitForFences(Vulkan.Device, 1, &currentRenderingResource.Fence, VK_FALSE, 1000000000) != VK_SUCCESS)
+		{
+			std::cout << "Waiting for fence takes too long" << std::endl;
+			return false;
+		}
+		vkResetFences(Vulkan.Device, 1, &currentRenderingResource.Fence);
+
+		VkResult res = vkAcquireNextImageKHR(Vulkan.Device, swapChain, UINT64_MAX, currentRenderingResource.ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+		switch (res)
+		{
+		case VK_SUCCESS:
+		case VK_SUBOPTIMAL_KHR:
+			break;
+		case VK_ERROR_OUT_OF_DATE_KHR:
+			return OnWindowSizeChanged();
+		default:
+			std::cout << "Problem occurred during swap chain image acquisition" << std::endl;
+			return false;
+		}
+
+		if (!PrepareFrame(currentRenderingResource.CommandBuffer, Vulkan.SwapChain.Images[imageIndex], currentRenderingResource.FrameBuffer))
+			return false;
+
+		VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			1,
+			&currentRenderingResource.ImageAvailableSemaphore,
+			&waitDstStageMask,
+			1,
+			&currentRenderingResource.CommandBuffer,
+			1,
+			&currentRenderingResource.FinishedRenderingSemaphore
+		};
+
+		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, currentRenderingResource.Fence) != VK_SUCCESS)
+			return false;
+
+		VkPresentInfoKHR presentInfo =
+		{
+			VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			nullptr,
+			1,
+			&currentRenderingResource.FinishedRenderingSemaphore,
+			1,
+			&swapChain,
+			&imageIndex,
+			nullptr
+		};
+
+		res = vkQueuePresentKHR(Vulkan.PresentQueue.Handle, &presentInfo);
+
+		switch (res)
+		{
+		case VK_SUCCESS:
+			break;
+		case VK_ERROR_OUT_OF_DATE_KHR:
+		case VK_SUBOPTIMAL_KHR:
+			return OnWindowSizeChanged();
+		default:
+			std::cout << "Problem occurred during image presentation" << std::endl;
+			return false;
+		}
+
+		return true;
+	}
+
+	bool StrikeRenderer::CreatePipelineLayout()
+	{
+		VkPipelineLayoutCreateInfo layoutCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			&Vulkan.DescriptorSet.Layout,
+			0,
+			nullptr
+		};
+
+		if (vkCreatePipelineLayout(Vulkan.Device, &layoutCreateInfo, nullptr, &Vulkan.PipelineLayout) != VK_SUCCESS)
+		{
+			std::cout << "Could not create pipeline layout" << std::endl;
+			return false;
+		}
+
+		return true;
+	}	
+
+	bool StrikeRenderer::CreateUniformBuffer()
+	{
+		Vulkan.UniformBuffer.Size = 16 * sizeof(float);
+		if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.UniformBuffer))
+		{
+			std::cout << "Could not create uniform buffer" << std::endl;
+			return false;
+		}
+
+		if (!CopyUniformBufferData())
+			return false;
+
+		return true;
+	}
+
+	bool StrikeRenderer::CreatePipeline()
+	{
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> vertexShaderModule = CreateShaderModule("../Data/vert.spv");
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> fragmentShaderModule = CreateShaderModule("../Data/frag.spv");
+
+		if (!vertexShaderModule || !fragmentShaderModule)
+			return false;
+
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo =
+		{
+			//Vertex shader
+			{
+				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				nullptr,
+				0,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				vertexShaderModule.Get(),
+				"main",
+				nullptr
+			},
+
+			//Fragment shader
+			{
+				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				nullptr,
+				0,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				fragmentShaderModule.Get(),
+				"main",
+				nullptr
+			}
+		};
+
+		VkVertexInputBindingDescription vertexBindingDesc =
+		{
+			0,
+			sizeof(VertexData),
+			VK_VERTEX_INPUT_RATE_VERTEX
+		};
+
+		VkVertexInputAttributeDescription vertexAttributeDesc[] =
+		{
+			{ 0, vertexBindingDesc.binding, VK_FORMAT_R32G32B32A32_SFLOAT, 0 },
+			{ 1, vertexBindingDesc.binding, VK_FORMAT_R32G32_SFLOAT, 4 * sizeof(float) },
+		};
+
+		VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			&vertexBindingDesc,
+			2,
+			vertexAttributeDesc
+		};
+
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+			VK_FALSE
+		};
+
+		VkPipelineViewportStateCreateInfo viewportStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			nullptr,
+			1,
+			nullptr
+		};
+
+		VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_FALSE,
+			VK_FALSE,
+			VK_POLYGON_MODE_FILL,
+			VK_CULL_MODE_BACK_BIT,
+			VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			VK_FALSE,
+			0.0f,
+			0.0f,
+			0.0f,
+			1.0f,
+		};
+
+		VkPipelineMultisampleStateCreateInfo multisampleStageCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_FALSE,
+			1.0f,
+			nullptr,
+			VK_FALSE,
+			VK_FALSE,
+		};
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachmentState =
+		{
+			VK_FALSE,
+			VK_BLEND_FACTOR_ONE,
+			VK_BLEND_FACTOR_ZERO,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_ONE,
+			VK_BLEND_FACTOR_ZERO,
+			VK_BLEND_OP_ADD,
+			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+		};
+
+		VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_FALSE,
+			VK_LOGIC_OP_COPY,
+			1,
+			&colorBlendAttachmentState,
+			{ 0.0f, 0.0f, 0.0f, 0.0f }
+		};
+
+		VkDynamicState dynamicStates[] =
+		{
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
+
+		VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			2,
+			dynamicStates
+		};
+
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			nullptr,
+			0,
+			static_cast<uint32_t>(shaderStageCreateInfo.size()),
+			shaderStageCreateInfo.data(),
+			&vertexInputStateCreateInfo,
+			&inputAssemblyStateCreateInfo,
+			nullptr,
+			&viewportStateCreateInfo,
+			&rasterizationStateCreateInfo,
+			&multisampleStageCreateInfo,
+			nullptr,
+			&colorBlendStateCreateInfo,
+			&dynamicStateCreateInfo,
+			Vulkan.PipelineLayout,
+			Vulkan.RenderPass,
+			0,
+			VK_NULL_HANDLE,
+			-1
+		};
+
+		if (vkCreateGraphicsPipelines(Vulkan.Device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Vulkan.GraphicsPipeline) != VK_SUCCESS)
+		{
+			std::cout << "Could not create graphics pipeline" << std::endl;
+			return false;
+		}
+
+		return true;
+	}
+
+	bool StrikeRenderer::CreateVertexBuffer()
+	{
+		const std::vector<float>& vertexData = GetVertexData();
+
+		Vulkan.VertexBuffer.Size = static_cast<uint32_t>(vertexData.size() * sizeof(vertexData[0]));
+		if (!CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.VertexBuffer))
+		{
+			std::cout << "Could not create vertex buffer" << std::endl;
+			return false;
+		}
+
+		if (!CopyVertexData())
+			return false;
+
+		return true;
+	}
+
+	bool StrikeRenderer::CreateSampler(VkSampler* sampler)
+	{
+		VkSamplerCreateInfo samplerCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+			nullptr,
+			0,
+			VK_FILTER_LINEAR,
+			VK_FILTER_LINEAR,
+			VK_SAMPLER_MIPMAP_MODE_NEAREST,
+			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			0.0f,
+			VK_FALSE,
+			1.0f,
+			VK_FALSE,
+			VK_COMPARE_OP_ALWAYS,
+			0.0f,
+			0.0f,
+			VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+			VK_FALSE
+			};
 	
-
-
-
+		return vkCreateSampler(Vulkan.Device, &samplerCreateInfo, nullptr, sampler) == VK_SUCCESS;
+		}
+	
+	bool StrikeRenderer::CreateImageView(ImageParameters& imgParams)
+	{
+		VkImageViewCreateInfo imgViewCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			nullptr,
+			0,
+			imgParams.Handle,
+			VK_IMAGE_VIEW_TYPE_2D,
+			VK_FORMAT_R8G8B8A8_UNORM,
+			{
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY
+			},
+			{
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				0,
+				1,
+				0,
+				1
+			}
+		};
+	
+		return vkCreateImageView(Vulkan.Device, &imgViewCreateInfo, nullptr, &imgParams.View) == VK_SUCCESS;
+	}
+	
+	bool StrikeRenderer::AllocateImageMemory(VkImage image, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory)
+	{
+		VkMemoryRequirements imgMemoryRequirements;
+		vkGetImageMemoryRequirements(Vulkan.Device, Vulkan.Image.Handle, &imgMemoryRequirements);
+	
+		VkPhysicalDeviceMemoryProperties memoryProperties;
+		vkGetPhysicalDeviceMemoryProperties(Vulkan.PhysicalDevice, &memoryProperties);
+	
+		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+		{
+			if ((imgMemoryRequirements.memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & property))
+			{
+				VkMemoryAllocateInfo memoryAllocateInfo =
+				{
+					VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+					nullptr,
+					imgMemoryRequirements.size,
+					i
+				};
+	
+				if (vkAllocateMemory(Vulkan.Device, &memoryAllocateInfo, nullptr, memory) == VK_SUCCESS)
+					return true;
+			}
+		}
+	
+		return false;
+	}
+	
+	bool StrikeRenderer::CreateImage(uint32_t width, uint32_t height, VkImage* image)
+	{
+		VkImageCreateInfo imgCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_IMAGE_TYPE_2D,
+			VK_FORMAT_R8G8B8A8_UNORM,
+			{
+				width,
+				height,
+				1
+			},
+			1,
+			1,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_SHARING_MODE_EXCLUSIVE,
+			0,
+			nullptr,
+			VK_IMAGE_LAYOUT_UNDEFINED
+		};
+	
+		return vkCreateImage(Vulkan.Device, &imgCreateInfo, nullptr, image) == VK_SUCCESS;
+	}
+	
+	bool StrikeRenderer::AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory)
+	{
+		VkMemoryRequirements bufferMemoryRequirements;
+		vkGetBufferMemoryRequirements(Vulkan.Device, buffer, &bufferMemoryRequirements);
+	
+		VkPhysicalDeviceMemoryProperties memoryProperties;
+		vkGetPhysicalDeviceMemoryProperties(Vulkan.PhysicalDevice, &memoryProperties);
+	
+		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+		{
+			if ((bufferMemoryRequirements.memoryTypeBits & (1 << i)) && ((memoryProperties.memoryTypes[i].propertyFlags & property)))
+			{
+				VkMemoryAllocateInfo memoryAllocateInfo =
+				{
+					VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+					nullptr,
+					bufferMemoryRequirements.size,
+					i
+				};
+	
+				if (vkAllocateMemory(Vulkan.Device, &memoryAllocateInfo, nullptr, memory) == VK_SUCCESS)
+					return true;
+			}
+		}
+	
+		return false;
+	}
+	
+	bool StrikeRenderer::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlagBits memoryProperty, BufferParameters& buffer)
+	{
+		VkBufferCreateInfo bufferCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+			nullptr,
+			0,
+			buffer.Size,
+			usageFlags,
+			VK_SHARING_MODE_EXCLUSIVE,
+			0,
+			nullptr
+		};
+	
+		if (vkCreateBuffer(Vulkan.Device, &bufferCreateInfo, nullptr, &buffer.Handle) != VK_SUCCESS)
+		{
+			std::cout << "Could not create buffer" << std::endl;
+			return false;
+		}
+	
+		if (!AllocateBufferMemory(buffer.Handle, memoryProperty, &buffer.Memory))
+		{
+			std::cout << "Could not allocate memory for a buffer" << std::endl;
+			return false;
+		}
+	
+		if (vkBindBufferMemory(Vulkan.Device, buffer.Handle, buffer.Memory, 0) != VK_SUCCESS)
+		{
+			std::cout << "Could not bind memory to a buffer" << std::endl;
+			return false;
+		}
+		return true;
+	}
+	
+	bool StrikeRenderer::CreateFences()
+	{
+		VkFenceCreateInfo fenceCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			nullptr,
+			VK_FENCE_CREATE_SIGNALED_BIT
+		};
+	
+		for (size_t i = 0; i < Vulkan.RenderingResources.size(); ++i)
+		{
+			if (vkCreateFence(Vulkan.Device, &fenceCreateInfo, nullptr, &Vulkan.RenderingResources[i].Fence) != VK_SUCCESS)
+			{
+				std::cout << "Could not create a fence" << std::endl;
+				return false;
+			}
+		}
+	
+	
+		return true;
+	}
+	
+	bool StrikeRenderer::CreateSemaphore()
+	{
+		VkSemaphoreCreateInfo semaphoreCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			nullptr,
+			0
+		};
+	
+		for (size_t i = 0; i < Vulkan.RenderingResources.size(); ++i)
+		{
+			if ((vkCreateSemaphore(Vulkan.Device, &semaphoreCreateInfo, nullptr, &Vulkan.RenderingResources[i].ImageAvailableSemaphore) != VK_SUCCESS) || (vkCreateSemaphore(Vulkan.Device, &semaphoreCreateInfo, nullptr, &Vulkan.RenderingResources[i].FinishedRenderingSemaphore) != VK_SUCCESS))
+			{
+				std::cout << "Could not create semaphore" << std::endl;
+				return false;
+			}
+		}
+	
+		return true;
+	}
+	
+	bool StrikeRenderer::AllocateCommandBuffers(VkCommandPool pool, uint32_t count, VkCommandBuffer* commandBuffers)
+	{
+		VkCommandBufferAllocateInfo cmdBufferAllocateInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			nullptr,
+			pool,
+			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			count
+		};
+	
+		if (vkAllocateCommandBuffers(Vulkan.Device, &cmdBufferAllocateInfo, commandBuffers) != VK_SUCCESS)
+		{
+			std::cout << "Could not allocate command buffer" << std::endl;
+			return false;
+		}
+	
+		return true;
+	}
+	
+	bool StrikeRenderer::CreateCommandBuffers()
+	{
+		if (!CreateCommandPool(Vulkan.GraphicsQueue.FamilyIndex, &Vulkan.CommandPool))
+		{
+			std::cout << "Could not create command pool" << std::endl;
+			return false;
+		}
+	
+		for (size_t i = 0; i < Vulkan.RenderingResources.size(); ++i)
+		{
+			if (!AllocateCommandBuffers(Vulkan.CommandPool, 1, &Vulkan.RenderingResources[i].CommandBuffer))
+			{
+				std::cout << "Could not allocate command buffer" << std::endl;
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	bool StrikeRenderer::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPool* pool)
+	{
+		VkCommandPoolCreateInfo cmdPoolCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			nullptr,
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+			queueFamilyIndex
+		};
+	
+		if (vkCreateCommandPool(Vulkan.Device, &cmdPoolCreateInfo, nullptr, pool) != VK_SUCCESS)
+		{
+			std::cout << "Could not create command pool" << std::endl;
+			return false;
+		}
+	
+		return true;
+	}
+	
+	
 }

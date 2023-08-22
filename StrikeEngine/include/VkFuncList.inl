@@ -116,22 +116,19 @@ VK_INSTANCE_LEVEL_FUNCTION(vkDestroyInstance)
 
 // Tutorial 02
 VK_INSTANCE_LEVEL_FUNCTION(vkEnumerateDeviceExtensionProperties)
-
 #if defined(USE_SWAPCHAIN_EXTENSIONS)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceSupportKHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceFormatsKHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfacePresentModesKHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkDestroySurfaceKHR)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
 VK_INSTANCE_LEVEL_FUNCTION(vkCreateWin32SurfaceKHR)
-
-//#if defined(VK_USE_PLATFORM_WIN32_KHR)
-//VK_INSTANCE_LEVEL_FUNCTION(vkCreateWin32SurfaceKHR)
-//#elif defined(VK_USE_PLATFORM_XCB_KHR)
-//VK_INSTANCE_LEVEL_FUNCTION(vkCreateXcbSurfaceKHR)
-//#elif defined(VK_USE_PLATFORM_XLIB_KHR)
-//VK_INSTANCE_LEVEL_FUNCTION(vkCreateXlibSurfaceKHR)
-//#endif
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+VK_INSTANCE_LEVEL_FUNCTION(vkCreateXcbSurfaceKHR)
+#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+VK_INSTANCE_LEVEL_FUNCTION(vkCreateXlibSurfaceKHR)
+#endif
 #endif
 
 // Tutorial 04

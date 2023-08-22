@@ -23,7 +23,47 @@ int main() {
 		return -1;
 	}
 
+	if (!rend.CreateStagingBuffer())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateTexture())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateUniformBuffer())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateDescriptorSetLayout())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateDescriptorPool())
+	{
+		return -1;
+	}
+
+	if (!rend.AllocateDescriptorSet())
+	{
+		return -1;
+	}
+
+	if (!rend.UpdateDescriptorSet())
+	{
+		return -1;
+	}
+
 	if(!rend.CreateRenderPass())
+	{
+		return -1;
+	}
+
+	if (!rend.CreatePipelineLayout())
 	{
 		return -1;
 	}
@@ -34,16 +74,6 @@ int main() {
 	}
 
 	if (!rend.CreateVertexBuffer())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateStagingBuffer())
-	{
-		return -1;
-	}
-
-	if (!rend.CopyVertexData())
 	{
 		return -1;
 	}

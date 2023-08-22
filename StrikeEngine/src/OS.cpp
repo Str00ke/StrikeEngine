@@ -15,10 +15,8 @@ namespace StrikeEngine
 	{
 	}
 
-
-	//#if defined(VK_USE_PLATFORM_WIN32_KHR)
-
 #define ENGINE_NAME "StrikeEngine"
+
 
 	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -141,7 +139,6 @@ namespace StrikeEngine
 	}
 
 
-
 	bool StrikeWindow::Create(const char* title)
 	{
 
@@ -184,8 +181,8 @@ namespace StrikeEngine
 			return 0;
 		}
 
-		RECT rc = { 0,0,1024,768 };
-		AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, false);
+		//RECT rc = { 0,0,1024,768 };
+		//AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, false);
 
 		m_params.Handle = CreateWindow( //More info: https://learn.microsoft.com/fr-fr/windows/win32/api/winuser/nf-winuser-createwindowexa
 			//NULL,									// Optional window styles.
@@ -201,6 +198,7 @@ namespace StrikeEngine
 			m_params.Instance,						// Instance handle
 			NULL									// Additional application data
 		);
+
 
 		if (!m_params.Handle)
 		{
@@ -268,7 +266,4 @@ namespace StrikeEngine
 		return res;
 	}
 
-
 }
-
-//#endif	
