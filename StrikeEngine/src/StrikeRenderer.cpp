@@ -1,35 +1,52 @@
 #include "StrikeRenderer.hpp"
 #include <vector>
 #include "VkFunctions.hpp"
+#include <chrono>
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "../Externals/tiny_obj_loader.h"
+#include <unordered_map>
 
+namespace std
+{
+	template<> struct hash<StrikeEngine::VertexData>
+	{
+		size_t operator()(StrikeEngine::VertexData const& vertex) const
+		{
+			return ((hash<glm::vec3>()(vertex.pos) ^
+				(hash<glm::vec3>()(vertex.color) << 1)) << 1) ^
+				(hash<glm::vec3>()(vertex.color) << 1);
+		};
+	};
+}
 
 namespace StrikeEngine
 {
-	VkPhysicalDevice StrikeRenderer::GetPhysicalDevice() const
-	{
-		return Vulkan.PhysicalDevice;
+
+	/*void recreateSwapChain() {
+		int width = 0, height = 0;
+		while (width == 0 || height == 0) {
+			glfwGetFramebufferSize(window, &width, &height);
+			glfwWaitEvents();
+		}
+
+		vkDeviceWaitIdle(device);
+
+		cleanupSwapChain();
+
+		createSwapChain();
+		createImageViews();
+		createDepthResources();
+		createFramebuffers();
 	}
 
-	VkDevice StrikeRenderer::GetDevice() const
-	{
-		return Vulkan.Device;
-	}
 
-	const StrikeEngine::QueueParameters StrikeRenderer::GetGraphicsQueue() const
-	{
-		return Vulkan.GraphicsQueue;
-	}
-
-	const StrikeEngine::QueueParameters StrikeRenderer::GetPresentQueue() const
-	{
-		return Vulkan.PresentQueue;
-	}
-
-	const StrikeEngine::SwapChainParameters& StrikeRenderer::GetSwapChain() const
-	{
-		return Vulkan.SwapChain;
-	}
-
+	void cleanupSwapChain() {
+		vkDestroyImageView(device, depthImageView, nullptr);
+		vkDestroyImage(device, depthImage, nullptr);
+		vkFreeMemory(device, depthImageMemory, nullptr);
+	
+		...
+	}*/
 	bool StrikeRenderer::OnWindowSizeChanged()
 	{
 		if (Vulkan.Device != VK_NULL_HANDLE) {
@@ -38,9 +55,9 @@ namespace StrikeEngine
 
 		if (CreateSwapChain()) {
 			if (m_CanRender) {
-				if ((GetDevice() != VK_NULL_HANDLE) &&
+				if ((Vulkan.Device != VK_NULL_HANDLE) &&
 					(Vulkan.StagingBuffer.Handle != VK_NULL_HANDLE)) {
-					vkDeviceWaitIdle(GetDevice());
+					vkDeviceWaitIdle(Vulkan.Device);
 					return CopyUniformBufferData();
 				}
 				return true;
@@ -90,7 +107,7 @@ namespace StrikeEngine
 			}
 
 
-			DestroyBuffer(Vulkan.VertexBuffer);
+			DestroyBuffer(Vulkan.Model.VertexBuffer);
 			DestroyBuffer(Vulkan.StagingBuffer);
 
 
@@ -217,7 +234,6 @@ namespace StrikeEngine
 		return true;
 	}
 
-
 	bool StrikeRenderer::LoadExportedEntryPoints()
 	{
 		//#ifdef VK_USE_PLATFORM_WIN32_KHR
@@ -276,6 +292,9 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CreateVkInstance()
 	{
+		if (enableValidationLayers && !CheckValidationLayerSupport())
+			throw std::runtime_error("Validation layers requested, but not available");
+
 		uint32_t extensionsCount = 0;
 		if ((vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, nullptr) != VK_SUCCESS) || extensionsCount == 0)
 		{
@@ -330,6 +349,12 @@ namespace StrikeEngine
 			static_cast<uint32_t>(extensions.size()),
 			extensions.data()
 		};
+
+		if (enableValidationLayers)
+		{
+			instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+			instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+		}
 
 		if (vkCreateInstance(&instanceCreateInfo, nullptr, &Vulkan.Instance) != VK_SUCCESS)
 		{
@@ -634,7 +659,6 @@ namespace StrikeEngine
 		return false;
 	}
 
-
 	bool StrikeRenderer::CreatePresentationSurface()
 	{
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo =
@@ -931,14 +955,20 @@ namespace StrikeEngine
 		if (frameBuffer != VK_NULL_HANDLE)
 			vkDestroyFramebuffer(Vulkan.Device, frameBuffer, nullptr);
 
+		std::array<VkImageView, 2> attachments =
+		{
+			imageView,
+			Vulkan.DepthImage.View
+		};
+
 		VkFramebufferCreateInfo frameBufferCreateInfo =
 		{
 			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 			nullptr,
 			0,
 			Vulkan.RenderPass,
-			1,
-			&imageView,
+			static_cast<uint32_t>(attachments.size()),
+			attachments.data(),
 			Vulkan.SwapChain.Extent.width,
 			Vulkan.SwapChain.Extent.height,
 			1
@@ -958,15 +988,11 @@ namespace StrikeEngine
 		if (!CreateFrameBuffers(frameBuffer, imgParams.View))
 			return false;
 
-		VkCommandBufferBeginInfo cmdBufferBeginInfo =
-		{
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			nullptr,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			nullptr
-		};
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		//beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+		vkBeginCommandBuffer(cmdBuffer, &beginInfo);
 
 		VkImageSubresourceRange imgSubresourceRange =
 		{
@@ -995,10 +1021,10 @@ namespace StrikeEngine
 			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierFromPresentToDraw);
 		}
 
-		VkClearValue clearValue =
-		{
-			{ 1.0f, 0.8f, 0.4f, 0.0f },
-		};
+		std::array<VkClearValue, 2> clearValues{};
+		clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+		clearValues[1].depthStencil = { 1.0, 0 };
+
 
 		VkRenderPassBeginInfo renderPassBeginInfo =
 		{
@@ -1010,8 +1036,8 @@ namespace StrikeEngine
 				{ 0, 0 },
 				Vulkan.SwapChain.Extent,
 			},
-			1,
-			&clearValue
+			static_cast<uint32_t>(clearValues.size()),
+			clearValues.data()
 		};
 
 		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -1038,11 +1064,14 @@ namespace StrikeEngine
 		vkCmdSetScissor(cmdBuffer, 0, 1, &scissors);
 
 		VkDeviceSize offset = 0;
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &Vulkan.VertexBuffer.Handle, &offset);
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &Vulkan.Model.VertexBuffer.Handle, &offset);
+
+		vkCmdBindIndexBuffer(cmdBuffer, Vulkan.Model.indexBuffer.Handle, 0, VK_INDEX_TYPE_UINT32);
 
 		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.PipelineLayout, 0, 1, &Vulkan.DescriptorSet.Handle, 0, nullptr);
 
-		vkCmdDraw(cmdBuffer, 4, 1, 0, 0);
+		//vkCmdDraw(cmdBuffer, 4, 1, 0, 0);
+		vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(Vulkan.Model.indices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(cmdBuffer);
 
@@ -1072,7 +1101,6 @@ namespace StrikeEngine
 		return true;
 	}
 
-
 	void StrikeRenderer::DestroyBuffer(BufferParameters& buffer)
 	{
 		if (buffer.Handle != VK_NULL_HANDLE)
@@ -1090,22 +1118,69 @@ namespace StrikeEngine
 
 	const std::vector<float>& StrikeRenderer::GetVertexData() const
 	{
-		static const std::vector<float> vertexData =
-		{
-			 -170.0f, -170.0f, 0.0f, 1.0f,
-		  -0.1f, -0.1f,
-		  //
-		  -170.0f, 170.0f, 0.0f, 1.0f,
-		  -0.1f, 1.1f,
-		  //
-		  170.0f, -170.0f, 0.0f, 1.0f,
-		  1.1f, -0.1f,
-		  //
-		  170.0f, 170.0f, 0.0f, 1.0f,
-		  1.1f, 1.1f,
-		};
+		
+ 		static const std::vector<float> vertexData =
+ 		{
+ 			 -170.0f, -170.0f, 0.0f, 1.0f,
+ 		  -0.1f, -0.1f,
+ 		  //
+ 		  -170.0f, 170.0f, 0.0f, 1.0f,
+ 		  -0.1f, 1.1f,
+ 		  //
+ 		  170.0f, -170.0f, 0.0f, 1.0f,
+ 		  1.1f, -0.1f,
+ 		  //
+ 		  170.0f, 170.0f, 0.0f, 1.0f,
+ 		  1.1f, 1.1f,
+ 		};
 
+		//static const std::vector<float> vertexData =
+		//{
+		//	-0.5f,	-0.5f,	1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+		//	0.5f,	-0.5f,	0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+		//	0.5f,	0.5f,	0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+		//	-0.5f,	0.5f,	1.0f, 1.0f, 1.0f, 1.0f, 1.0f
+		//};
+		
 		return vertexData;
+	}
+
+	bool StrikeRenderer::CreateDepthResources()
+	{
+		VkFormat depthFormat = FindDepthFormat();
+		if (!CreateImage(Vulkan.SwapChain.Extent.width, Vulkan.SwapChain.Extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.DepthImage.Handle))
+			return false;
+
+		/*if (!AllocateImageMemory(Vulkan.DepthImage.Handle, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &Vulkan.DepthImage.Memory))
+		{
+			std::cout << "Could not allocate memory for image" << std::endl;
+			return false;
+		}*/
+
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(Vulkan.Device, Vulkan.DepthImage.Handle, &memRequirements);
+
+
+		VkMemoryAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = memRequirements.size;
+		allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		if (vkAllocateMemory(Vulkan.Device, &allocInfo, nullptr, &Vulkan.DepthImage.Memory) != VK_SUCCESS) {
+			throw std::runtime_error("failed to allocate image memory!");
+		}
+
+		if (vkBindImageMemory(Vulkan.Device, Vulkan.DepthImage.Handle, Vulkan.DepthImage.Memory, 0) != VK_SUCCESS)
+		{
+			std::cout << "Could not bind memory to an image" << std::endl;
+			return false;
+		}
+		
+		if (!CreateImageView(Vulkan.DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT))
+			return false;
+
+		return true;
+
 	}
 
 	Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> StrikeRenderer::CreateShaderModule(const char* filename)
@@ -1137,16 +1212,16 @@ namespace StrikeEngine
 	{
 
 		//Prepare data in the staging buffer
-		const std::vector<float>& vertexData = GetVertexData();
+		//std::vector<float>& vertexData = Vulkan.Model.vertices;//GetVertexData();
 
 		void* stagingBufferMemoryPointer;
-		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.VertexBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
+		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.Model.VertexBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
 		{
 			std::cout << "Could not map memory an upload data to a staging buffer" << std::endl;
 			return false;
 		}
 
-		memcpy(stagingBufferMemoryPointer, &vertexData[0], Vulkan.VertexBuffer.Size);
+		memcpy(stagingBufferMemoryPointer, Vulkan.Model.vertices.data(), Vulkan.Model.VertexBuffer.Size);
 
 		VkMappedMemoryRange flushRange =
 		{
@@ -1154,7 +1229,7 @@ namespace StrikeEngine
 			nullptr,
 			Vulkan.StagingBuffer.Memory,
 			0,
-			Vulkan.VertexBuffer.Size
+			Vulkan.Model.VertexBuffer.Size
 		};
 		vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
 
@@ -1177,9 +1252,9 @@ namespace StrikeEngine
 		{
 			0,
 			0,
-			Vulkan.VertexBuffer.Size
+			Vulkan.Model.VertexBuffer.Size
 		};
-		vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.VertexBuffer.Handle, 1, &bufferCopyInfo);
+		vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.Model.VertexBuffer.Handle, 1, &bufferCopyInfo);
 
 		VkBufferMemoryBarrier bufferMemoryBarrier =
 		{
@@ -1189,7 +1264,7 @@ namespace StrikeEngine
 			VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
 			VK_QUEUE_FAMILY_IGNORED,
 			VK_QUEUE_FAMILY_IGNORED,
-			Vulkan.VertexBuffer.Handle,
+			Vulkan.Model.VertexBuffer.Handle,
 			0,
 			VK_WHOLE_SIZE
 		};
@@ -1444,150 +1519,497 @@ namespace StrikeEngine
 		return Tools::GetOrthographicProjectionMatrix(-halfWidth, halfWidth, -halfHeight, halfHeight, -1.0f, 1.0f);
 	}
 
-	bool StrikeRenderer::CreateDescriptorSetLayout()
-{
-	std::vector<VkDescriptorSetLayoutBinding> layoutBindings =
+	bool StrikeRenderer::UpdateUniformBuffer()
 	{
-		{
-			0,
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			1,
-			VK_SHADER_STAGE_FRAGMENT_BIT,
-			nullptr
-		},
-		{
-			1,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			1,
-			VK_SHADER_STAGE_VERTEX_BIT,
-			nullptr
-		}
+		static auto startTime = std::chrono::high_resolution_clock::now();
 
-	};
+		auto currTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currTime - startTime).count();
 
-	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		nullptr,
-		0,
-		static_cast<uint32_t>(layoutBindings.size()),
-		layoutBindings.data()
-	};
+		UniformBufferObject ubo{};
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.proj = glm::perspective(glm::radians(45.0f), Vulkan.SwapChain.Extent.width / (float)Vulkan.SwapChain.Extent.height, 0.1f, 10.0f);
+		ubo.proj[1][1] *= -1;
 
-	if (vkCreateDescriptorSetLayout(Vulkan.Device, &descriptorSetLayoutCreateInfo, nullptr, &Vulkan.DescriptorSet.Layout) != VK_SUCCESS)
-	{
-		std::cout << "Could not create descriptor set layout" << std::endl;
-		return false;
+		memcpy(Vulkan.UniformBufferMapped, &ubo, sizeof(ubo));
+		return true;
 	}
 
-	return true;
-}
+	bool StrikeRenderer::LoadModel(ModelData& modelData)
+	{
+		tinyobj::attrib_t attrib;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		std::string warn, err;
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str()))
+			throw std::runtime_error(warn + err);
+
+		std::unordered_map<VertexData, uint32_t> uniqueVertices{};
+
+		for (const auto& shape : shapes)
+		{
+			for (const auto& index : shape.mesh.indices)
+			{
+				VertexData vData;
+				vData.pos = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]
+                };
+
+				vData.texCoord = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+
+				vData.color = {1.0f, 1.0f, 1.0f};
+				Vulkan.Model.vertices.push_back(vData);
+				if (uniqueVertices.count(vData) == 0)
+				{
+					uniqueVertices[vData] = static_cast<uint32_t>(Vulkan.Model.vertices.size());
+					Vulkan.Model.vertices.push_back(vData);
+				}
+
+                Vulkan.Model.indices.push_back(uniqueVertices[vData]);
+			}
+		}
+	}
+
+	VkFormat StrikeRenderer::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+	{
+		for (VkFormat format : candidates)
+		{
+			VkFormatProperties props;
+			vkGetPhysicalDeviceFormatProperties(Vulkan.PhysicalDevice, format, &props);
+
+			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+				return format;
+			else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+				return format;
+		}
+
+		throw std::runtime_error("Failed to find supported format");
+	}
+
+	VkFormat StrikeRenderer::FindDepthFormat()
+	{
+		return FindSupportedFormat(
+			{
+				VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
+			},
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+		);
+	}
+
+	uint32_t StrikeRenderer::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+	{
+		VkPhysicalDeviceMemoryProperties memProperties;
+		vkGetPhysicalDeviceMemoryProperties(Vulkan.PhysicalDevice, &memProperties);
+
+		for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
+		{
+			if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				return i;
+		}
+
+		throw std::runtime_error("Failed to find suitable memory type");
+	}
+
+	bool StrikeRenderer::HasStencilComponent(VkFormat format)
+	{
+		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+	}
+
+	VkCommandBuffer StrikeRenderer::BeginSingleTimeCommands()
+	{
+		VkCommandBufferAllocateInfo allocateInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			nullptr,
+			Vulkan.CommandPool,
+			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			1
+		};
+
+		VkCommandBuffer cmdBuffer;
+		vkAllocateCommandBuffers(Vulkan.Device, &allocateInfo, &cmdBuffer);
+		VkCommandBufferBeginInfo cmdBufferBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			nullptr,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			nullptr
+		};
+
+		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+
+		return cmdBuffer;
+	}
+
+	bool StrikeRenderer::EndSingleTimeCommands(VkCommandBuffer commandBuffer)
+	{
+		vkEndCommandBuffer(commandBuffer);
+
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			0,
+			nullptr,
+			nullptr,
+			1,
+			&commandBuffer,
+			0,
+			nullptr
+		};
+
+		vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(Vulkan.GraphicsQueue.Handle);
+
+		vkFreeCommandBuffers(Vulkan.Device, Vulkan.CommandPool, 1, &commandBuffer);
+		return true;
+	}
+
+	bool StrikeRenderer::CheckValidationLayerSupport()
+	{
+		uint32_t layerCount;
+		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+		std::vector<VkLayerProperties> availableLayers(layerCount);
+		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+		for (const char* layerName : validationLayers)
+		{
+			bool layerFound = false;
+
+			for (const auto& layerProperties : availableLayers)
+			{
+				if (strcmp(layerName, layerProperties.layerName) == 0)
+				{
+					layerFound = true;
+					break;
+				}
+			}
+
+			if (!layerFound) return false;
+		}
+
+		return true;
+	}
+
+	bool StrikeRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+	{
+		VkCommandBuffer cmdBuffer = BeginSingleTimeCommands();
+
+		VkImageMemoryBarrier barrier
+		{
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			nullptr,
+			0,
+			0,
+			oldLayout,
+			newLayout,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			image,
+			{
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				0,
+				1,
+				0,
+				1
+			}
+		};
+
+		VkPipelineStageFlags srcStage;
+		VkPipelineStageFlags destStage;
+
+		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+		{
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			destStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+		{
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			destStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		}
+		else
+			throw std::invalid_argument("Unsupported layout transition");
+
+		vkCmdPipelineBarrier(cmdBuffer, srcStage, destStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+		EndSingleTimeCommands(cmdBuffer);
+		
+		return true;
+	}
+
+	bool StrikeRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+	{
+		VkCommandBuffer cmdBuffer = BeginSingleTimeCommands();
+
+		VkBufferImageCopy region =
+		{
+			0,
+			0,
+			0,
+			{
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				0,
+				0,
+				1
+			},
+			{
+				0,
+				0,
+				0
+			},
+			{
+				width,
+				height,
+				1
+			}
+		};
+
+		vkCmdCopyBufferToImage(cmdBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+	
+		EndSingleTimeCommands(cmdBuffer);
+		return true;
+	}
+
+	bool StrikeRenderer::CreateObject()
+	{
+		if (!CreateTexture())
+			return false;
+		if (!LoadModel(Vulkan.Model))
+			return false;
+
+		return true;
+	}
+
+	bool StrikeRenderer::CreateDescriptorSetLayout()
+	{
+		/*std::vector<VkDescriptorSetLayoutBinding> layoutBindings =
+		{
+			{
+				0,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				nullptr
+			},
+			{
+				1,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				1,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				nullptr
+			}
+	
+		};
+	
+		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			static_cast<uint32_t>(layoutBindings.size()),
+			layoutBindings.data()
+		};
+	
+		if (vkCreateDescriptorSetLayout(Vulkan.Device, &descriptorSetLayoutCreateInfo, nullptr, &Vulkan.DescriptorSet.Layout) != VK_SUCCESS)
+		{
+			std::cout << "Could not create descriptor set layout" << std::endl;
+			return false;
+		}*/
+	
+		VkDescriptorSetLayoutBinding uboLayoutBinding{};
+		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.pImmutableSamplers = nullptr;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+		samplerLayoutBinding.binding = 1;
+		samplerLayoutBinding.descriptorCount = 1;
+		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerLayoutBinding.pImmutableSamplers = nullptr;
+		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+		VkDescriptorSetLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+		layoutInfo.pBindings = bindings.data();
+
+		if (vkCreateDescriptorSetLayout(Vulkan.Device, &layoutInfo, nullptr, &Vulkan.DescriptorSet.Layout) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create descriptor set layout!");
+		}
+
+		return true;
+	}
 
 	bool StrikeRenderer::CreateDescriptorPool()
-{
-	std::vector<VkDescriptorPoolSize> poolSizes =
 	{
+		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			1
-		},
+			{
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				1
+			},
+			{
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				1
+			}
+		};
+	
+		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo =
 		{
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			1
+			VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			static_cast<uint32_t>(poolSizes.size()),
+			poolSizes.data()
+		};
+	
+		if (vkCreateDescriptorPool(Vulkan.Device, &descriptorPoolCreateInfo, nullptr, &Vulkan.DescriptorSet.Pool) != VK_SUCCESS)
+		{
+			std::cout << "Could not create descriptor pool" << std::endl;
+			return false;
 		}
-	};
-
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-		nullptr,
-		0,
-		1,
-		static_cast<uint32_t>(poolSizes.size()),
-		poolSizes.data()
-	};
-
-	if (vkCreateDescriptorPool(Vulkan.Device, &descriptorPoolCreateInfo, nullptr, &Vulkan.DescriptorSet.Pool) != VK_SUCCESS)
-	{
-		std::cout << "Could not create descriptor pool" << std::endl;
-		return false;
+	
+		return true;
 	}
-
-	return true;
-}
 
 	bool StrikeRenderer::AllocateDescriptorSet()
-{
-	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo =
 	{
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		nullptr,
-		Vulkan.DescriptorSet.Pool,
-		1,
-		&Vulkan.DescriptorSet.Layout
-	};
+		/*VkDescriptorSetAllocateInfo descriptorSetAllocateInfo =
+		{
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			nullptr,
+			Vulkan.DescriptorSet.Pool,
+			1,
+			&Vulkan.DescriptorSet.Layout
+		};
+	
+		if (vkAllocateDescriptorSets(Vulkan.Device, &descriptorSetAllocateInfo, &Vulkan.DescriptorSet.Handle) != VK_SUCCESS)
+		{
+			std::cout << "Could not allocate descriptor set" << std::endl;
+			return false;
+		}*/
 
-	if (vkAllocateDescriptorSets(Vulkan.Device, &descriptorSetAllocateInfo, &Vulkan.DescriptorSet.Handle) != VK_SUCCESS)
-	{
-		std::cout << "Could not allocate descriptor set" << std::endl;
-		return false;
+		VkDescriptorSetAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = Vulkan.DescriptorSet.Pool;
+		allocInfo.descriptorSetCount = 1;
+		allocInfo.pSetLayouts = &Vulkan.DescriptorSet.Layout;
+
+		if (vkAllocateDescriptorSets(Vulkan.Device, &allocInfo, &Vulkan.DescriptorSet.Handle) != VK_SUCCESS) {
+			throw std::runtime_error("failed to allocate descriptor sets!");
+		}
+
+	
+		return true;
 	}
 
-	return true;
-}
-
 	bool StrikeRenderer::UpdateDescriptorSet()
-{
-	VkDescriptorImageInfo imgInfo =
 	{
-		Vulkan.Image.Sampler,
-		Vulkan.Image.View,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-	};
-
-	VkDescriptorBufferInfo bufferInfo =
-	{
-		Vulkan.UniformBuffer.Handle,
-		0,
-		Vulkan.UniformBuffer.Size
-	};
-
-	std::vector<VkWriteDescriptorSet> descriptorWrites =
-	{
+		/*VkDescriptorImageInfo imgInfo =
 		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-			nullptr,
-			Vulkan.DescriptorSet.Handle,
-			0,
-			0,
-			1,
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			&imgInfo,
-			nullptr,
-			nullptr
-		},
-		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-			nullptr,
-			Vulkan.DescriptorSet.Handle,
-			1,
-			0,
-			1,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			nullptr,
-			&bufferInfo,
-			nullptr
-		}
-	};
+			Vulkan.Image.Sampler,
+			Vulkan.Image.View,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		};
 
-	vkUpdateDescriptorSets(Vulkan.Device, static_cast<uint32_t>(descriptorWrites.size()), &descriptorWrites[0], 0, nullptr);
-	return true;
-}
+		VkDescriptorBufferInfo bufferInfo =
+		{
+			Vulkan.UniformBuffer.Handle,
+			0,
+			Vulkan.UniformBuffer.Size
+		};
+
+		std::vector<VkWriteDescriptorSet> descriptorWrites =
+		{
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				nullptr,
+				Vulkan.DescriptorSet.Handle,
+				0,
+				0,
+				1,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				&imgInfo,
+				nullptr,
+				nullptr
+			},
+			{
+				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				nullptr,
+				Vulkan.DescriptorSet.Handle,
+				1,
+				0,
+				1,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				nullptr,
+				&bufferInfo,
+				nullptr
+			}
+		};
+
+		vkUpdateDescriptorSets(Vulkan.Device, static_cast<uint32_t>(descriptorWrites.size()), &descriptorWrites[0], 0, nullptr);
+		*/
+
+		VkDescriptorBufferInfo bufferInfo{};
+		bufferInfo.buffer = Vulkan.UniformBuffer.Handle;
+		bufferInfo.offset = 0;
+		bufferInfo.range = sizeof(UniformBufferObject);
+
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = Vulkan.Image.View;
+		imageInfo.sampler = Vulkan.Image.Sampler;
+
+		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = Vulkan.DescriptorSet.Handle;
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = Vulkan.DescriptorSet.Handle;
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &imageInfo;
+
+
+		
+
+
+
+		vkUpdateDescriptorSets(Vulkan.Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+
+		return true;
+	}
 
 	bool StrikeRenderer::CreateRenderPass()
-{
-	VkAttachmentDescription attachmentDesc[] =
 	{
+		VkAttachmentDescription colorAttachment =
 		{
 			0,
 			Vulkan.SwapChain.Format,
@@ -1595,154 +2017,186 @@ namespace StrikeEngine
 			VK_ATTACHMENT_LOAD_OP_CLEAR,
 			VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-			VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-		}
-	};
+		};
 
-	VkAttachmentReference colorAttachmentRef[] =
-	{
+		VkAttachmentDescription depthAttachment =
+		{
+			0,
+			FindDepthFormat(),
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+		};
+
+
+		VkAttachmentReference colorAttachmentRef =
 		{
 			0,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-		}
-	};
+		};
 
-	VkSubpassDescription subpassDesc[] =
-	{
+		VkAttachmentReference depthAttachmentRef =
+		{
+			1,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+		};
+
+		VkSubpassDescription subpassDesc =
 		{
 			0,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
 			0,
 			nullptr,
 			1,
-			colorAttachmentRef,
+			&colorAttachmentRef,
 			nullptr,
-			nullptr,
+			&depthAttachmentRef,
 			0,
 			nullptr
-		}
-	};
+		};
 
-
-	std::vector<VkSubpassDependency> dependencies =
-	{
+		VkSubpassDependency dependency =
 		{
 			VK_SUBPASS_EXTERNAL,
 			0,
-			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			VK_ACCESS_MEMORY_READ_BIT,
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 			VK_DEPENDENCY_BY_REGION_BIT
-		},
+		};
+
+		std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+
+		VkRenderPassCreateInfo renderPassCreateInfo =
 		{
+			VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+			nullptr,
 			0,
-			VK_SUBPASS_EXTERNAL,
-			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-			VK_ACCESS_MEMORY_READ_BIT,
-			VK_DEPENDENCY_BY_REGION_BIT
+			static_cast<uint32_t>(attachments.size()),
+			attachments.data(),
+			1,
+			&subpassDesc,
+			1,
+			&dependency
+		};
+
+		if (vkCreateRenderPass(Vulkan.Device, &renderPassCreateInfo, nullptr, &Vulkan.RenderPass) != VK_SUCCESS)
+		{
+			std::cout << "Could not create render pass" << std::endl;
+			return false;
 		}
-	};
-
-	VkRenderPassCreateInfo renderPassCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-		nullptr,
-		0,
-		1,
-		attachmentDesc,
-		1,
-		subpassDesc,
-		static_cast<uint32_t>(dependencies.size()),
-		dependencies.data()
-	};
-
-	if (vkCreateRenderPass(Vulkan.Device, &renderPassCreateInfo, nullptr, &Vulkan.RenderPass) != VK_SUCCESS)
-	{
-		std::cout << "Could not create render pass" << std::endl;
-		return false;
+		return true;
 	}
-	return true;
-}
 
 	bool StrikeRenderer::CreateTexture()
-{
-	int width = 0, height = 0, dataSize = 0;
-	std::vector textureData = Tools::GetImageData("../Data/texture.png", 4, &width, &height, nullptr, &dataSize);
-	if (textureData.size() == 0)
-		return false;
-
-	if (!CreateImage(width, height, &Vulkan.Image.Handle))
 	{
-		std::cout << "Could not create image" << std::endl;
-		return false;
+		int width = 0, height = 0, dataSize = 0;
+		std::vector textureData = Tools::GetImageData(TEXTURE_PATH.c_str(), 4, &width, &height, nullptr, &dataSize);
+		if (textureData.size() == 0)
+			return false;
+
+
+		VkDeviceSize bufferSize = width * height * 4;
+		Vulkan.StagingBuffer.Size = width * height * 4;
+
+		if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, Vulkan.StagingBuffer))
+		{
+			std::cout << "Could not create vertex buffer" << std::endl;
+			return false;
+		}
+
+		void* data;
+		vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, bufferSize, 0, &data);
+		memcpy(data, textureData.data(), static_cast<size_t>(bufferSize));
+		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+
+		
+
+		//-----Create image-----
+		if (!CreateImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.Image.Handle))
+		{
+			std::cout << "Could not create image" << std::endl;
+			return false;
+		}
+
+		if (!AllocateImageMemory(Vulkan.Image.Handle, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &Vulkan.Image.Memory))
+		{
+			std::cout << "Could not allocate memory for image" << std::endl;
+			return false;
+		}
+
+		if (vkBindImageMemory(Vulkan.Device, Vulkan.Image.Handle, Vulkan.Image.Memory, 0) != VK_SUCCESS)
+		{
+			std::cout << "Could not bind memory to an image" << std::endl;
+			return false;
+		}
+		//----------
+
+		TransitionImageLayout(Vulkan.Image.Handle, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		CopyBufferToImage(Vulkan.StagingBuffer.Handle, Vulkan.Image.Handle, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+		TransitionImageLayout(Vulkan.Image.Handle, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
+		vkDestroyBuffer(Vulkan.Device, Vulkan.StagingBuffer.Handle, nullptr);
+		vkFreeMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, nullptr);
+
+
+		if (!CreateImageView(Vulkan.Image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT))
+		{
+			std::cout << "Could not create image view" << std::endl;
+			return false;
+		}
+
+		if (!CreateSampler(&Vulkan.Image.Sampler))
+		{
+			std::cout << "Could not create sampler" << std::endl;
+			return false;
+		}
+
+		/*if (!CopyTextureData(&textureData[0], dataSize, width, height))
+		{
+			std::cout << "Could not upload texture data to device memory" << std::endl;
+			return false;
+		}*/
+
+
+
+		return true;
 	}
-
-	if (!AllocateImageMemory(Vulkan.Image.Handle, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &Vulkan.Image.Memory))
-	{
-		std::cout << "Could not allocate memory for image" << std::endl;
-		return false;
-	}
-
-	if (vkBindImageMemory(Vulkan.Device, Vulkan.Image.Handle, Vulkan.Image.Memory, 0) != VK_SUCCESS)
-	{
-		std::cout << "Could not bind memory to an image" << std::endl;
-		return false;
-	}
-
-	if (!CreateImageView(Vulkan.Image))
-	{
-		std::cout << "Could not create image view" << std::endl;
-		return false;
-	}
-
-	if (!CreateSampler(&Vulkan.Image.Sampler))
-	{
-		std::cout << "Could not create sampler" << std::endl;
-		return false;
-	}
-
-	if (!CopyTextureData(&textureData[0], dataSize, width, height))
-	{
-		std::cout << "Could not upload texture data to device memory" << std::endl;
-		return false;
-	}
-
-
-
-	return true;
-}
 
 	bool StrikeRenderer::CreateRenderingResources()
-{
-	if (!CreateCommandBuffers())
-		return false;
-
-	if (!CreateSemaphore())
-		return false;
-
-	if (!CreateFences())
-		return false;
-
-
-	return true;
-}
-
-	bool StrikeRenderer::CreateStagingBuffer()
-{
-	Vulkan.StagingBuffer.Size = 1000000;
-	if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, Vulkan.StagingBuffer))
 	{
-		std::cout << "Could not staging buffer" << std::endl;
-		return false;
+		/*if (!CreateCommandBuffers())
+			return false;*/
+	
+		if (!CreateSemaphore())
+			return false;
+	
+		if (!CreateFences())
+			return false;
+
+		return true;
 	}
 
-	return true;
-}
+	bool StrikeRenderer::CreateStagingBuffer()
+	{
+		Vulkan.StagingBuffer.Size = 1000000;
+		if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, Vulkan.StagingBuffer))
+		{
+			std::cout << "Could not staging buffer" << std::endl;
+			return false;
+		}
+	
+		return true;
+	}
 
 	bool StrikeRenderer::Draw()
 	{
@@ -1759,6 +2213,8 @@ namespace StrikeEngine
 			std::cout << "Waiting for fence takes too long" << std::endl;
 			return false;
 		}
+
+		UpdateUniformBuffer();
 		vkResetFences(Vulkan.Device, 1, &currentRenderingResource.Fence);
 
 		VkResult res = vkAcquireNextImageKHR(Vulkan.Device, swapChain, UINT64_MAX, currentRenderingResource.ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
@@ -1774,10 +2230,11 @@ namespace StrikeEngine
 			return false;
 		}
 
+		vkResetCommandBuffer(currentRenderingResource.CommandBuffer, 0);
 		if (!PrepareFrame(currentRenderingResource.CommandBuffer, Vulkan.SwapChain.Images[imageIndex], currentRenderingResource.FrameBuffer))
 			return false;
 
-		VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		/*VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		VkSubmitInfo submitInfo =
 		{
 			VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -1789,7 +2246,23 @@ namespace StrikeEngine
 			&currentRenderingResource.CommandBuffer,
 			1,
 			&currentRenderingResource.FinishedRenderingSemaphore
-		};
+		};*/
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+		VkSemaphore waitSemaphores[] = { currentRenderingResource.ImageAvailableSemaphore };
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &currentRenderingResource.CommandBuffer;
+
+		VkSemaphore signalSemaphores[] = { currentRenderingResource.FinishedRenderingSemaphore };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
 
 		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, currentRenderingResource.Fence) != VK_SUCCESS)
 			return false;
@@ -1847,15 +2320,29 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CreateUniformBuffer()
 	{
-		Vulkan.UniformBuffer.Size = 16 * sizeof(float);
-		if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.UniformBuffer))
+		Vulkan.UniformBuffer.Size = sizeof(UniformBufferObject);
+		/*if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.UniformBuffer))
+		{
+			std::cout << "Could not create uniform buffer" << std::endl;
+			return false;
+		}*/
+		if (!CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, Vulkan.UniformBuffer))
 		{
 			std::cout << "Could not create uniform buffer" << std::endl;
 			return false;
 		}
 
-		if (!CopyUniformBufferData())
+		//if (!CopyUniformBufferData())
+		//	return false;
+
+		const std::array<float, 16> uniformData = GetUniformBufferData();
+
+		void* stagingBufferMemoryPointer;
+		if (vkMapMemory(Vulkan.Device, Vulkan.UniformBuffer.Memory, 0, Vulkan.UniformBuffer.Size, 0, &Vulkan.UniformBufferMapped) != VK_SUCCESS)
+		{
+			std::cout << "Could not map memory and upload data to a staging buffer" << std::endl;
 			return false;
+		}
 
 		return true;
 	}
@@ -1900,10 +2387,11 @@ namespace StrikeEngine
 			VK_VERTEX_INPUT_RATE_VERTEX
 		};
 
-		VkVertexInputAttributeDescription vertexAttributeDesc[] =
+		std::vector<VkVertexInputAttributeDescription> vertexAttributeDesc =
 		{
-			{ 0, vertexBindingDesc.binding, VK_FORMAT_R32G32B32A32_SFLOAT, 0 },
-			{ 1, vertexBindingDesc.binding, VK_FORMAT_R32G32_SFLOAT, 4 * sizeof(float) },
+			{ 0, vertexBindingDesc.binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexData, pos)},
+			{ 1, vertexBindingDesc.binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexData, color) },
+			{ 2, vertexBindingDesc.binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexData, texCoord) },
 		};
 
 		VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo =
@@ -1913,8 +2401,8 @@ namespace StrikeEngine
 			0,
 			1,
 			&vertexBindingDesc,
-			2,
-			vertexAttributeDesc
+			static_cast<uint32_t>(vertexAttributeDesc.size()),
+			vertexAttributeDesc.data()
 		};
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo =
@@ -1922,7 +2410,7 @@ namespace StrikeEngine
 			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 			nullptr,
 			0,
-			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 			VK_FALSE
 		};
 
@@ -1967,6 +2455,22 @@ namespace StrikeEngine
 			VK_FALSE,
 		};
 
+		VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo =
+		{
+			VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_TRUE,
+			VK_TRUE,
+			VK_COMPARE_OP_LESS,
+			VK_FALSE,
+			VK_FALSE,
+			{},
+			{},
+			0.0f,
+			1.0f,
+		};
+
 		VkPipelineColorBlendAttachmentState colorBlendAttachmentState =
 		{
 			VK_FALSE,
@@ -1991,7 +2495,7 @@ namespace StrikeEngine
 			{ 0.0f, 0.0f, 0.0f, 0.0f }
 		};
 
-		VkDynamicState dynamicStates[] =
+		std::vector<VkDynamicState> dynamicStates =
 		{
 			VK_DYNAMIC_STATE_VIEWPORT,
 			VK_DYNAMIC_STATE_SCISSOR
@@ -2002,8 +2506,8 @@ namespace StrikeEngine
 			VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
 			nullptr,
 			0,
-			2,
-			dynamicStates
+			static_cast<uint32_t>(dynamicStates.size()),
+			dynamicStates.data()
 		};
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo =
@@ -2019,7 +2523,7 @@ namespace StrikeEngine
 			&viewportStateCreateInfo,
 			&rasterizationStateCreateInfo,
 			&multisampleStageCreateInfo,
-			nullptr,
+			&depthStencilCreateInfo,
 			&colorBlendStateCreateInfo,
 			&dynamicStateCreateInfo,
 			Vulkan.PipelineLayout,
@@ -2040,17 +2544,84 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CreateVertexBuffer()
 	{
-		const std::vector<float>& vertexData = GetVertexData();
+		VkDeviceSize bufferSize = sizeof(Vulkan.Model.vertices[0]) * Vulkan.Model.vertices.size();
 
-		Vulkan.VertexBuffer.Size = static_cast<uint32_t>(vertexData.size() * sizeof(vertexData[0]));
-		if (!CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.VertexBuffer))
+		Vulkan.Model.VertexBuffer.Size = static_cast<uint32_t>(sizeof(Vulkan.Model.vertices[0]) * Vulkan.Model.vertices.size());
+		Vulkan.StagingBuffer.Size = static_cast<uint32_t>(sizeof(Vulkan.Model.vertices[0]) * Vulkan.Model.vertices.size());
+
+		if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, Vulkan.StagingBuffer))
 		{
 			std::cout << "Could not create vertex buffer" << std::endl;
 			return false;
 		}
 
-		if (!CopyVertexData())
+		void* data;
+		vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, bufferSize, 0, &data);
+		memcpy(data, Vulkan.Model.vertices.data(), (size_t)bufferSize);
+		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+
+		if (!CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.Model.VertexBuffer))
+		{
+			std::cout << "Could not create vertex buffer" << std::endl;
 			return false;
+		}
+		//if (!CopyVertexData())
+		//	return false;
+
+		
+		//copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+		VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+		VkBufferCopy copyRegion{};
+		copyRegion.size = bufferSize;
+		vkCmdCopyBuffer(commandBuffer, Vulkan.StagingBuffer.Handle, Vulkan.Model.VertexBuffer.Handle, 1, &copyRegion);
+
+		EndSingleTimeCommands(commandBuffer);
+
+		vkDestroyBuffer(Vulkan.Device, Vulkan.StagingBuffer.Handle, nullptr);
+		vkFreeMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, nullptr);
+
+		return true;
+	}
+
+	bool StrikeRenderer::CreateIndexBuffer()
+	{
+		VkDeviceSize bufferSize = sizeof(Vulkan.Model.indices[0]) * Vulkan.Model.indices.size();
+
+		Vulkan.Model.indexBuffer.Size = static_cast<uint32_t>(sizeof(Vulkan.Model.indices[0]) * Vulkan.Model.indices.size());
+		Vulkan.StagingBuffer.Size = static_cast<uint32_t>(sizeof(Vulkan.Model.indices[0]) * Vulkan.Model.indices.size());
+
+		if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, Vulkan.StagingBuffer))
+		{
+			std::cout << "Could not create vertex buffer" << std::endl;
+			return false;
+		}
+
+		void* data;
+		vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, bufferSize, 0, &data);
+		memcpy(data, Vulkan.Model.indices.data(), (size_t)bufferSize);
+		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+
+		if (!CreateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.Model.indexBuffer))
+		{
+			std::cout << "Could not create vertex buffer" << std::endl;
+			return false;
+		}
+		//if (!CopyVertexData())
+		//	return false;
+
+
+		//copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+		VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+		VkBufferCopy copyRegion{};
+		copyRegion.size = bufferSize;
+		vkCmdCopyBuffer(commandBuffer, Vulkan.StagingBuffer.Handle, Vulkan.Model.indexBuffer.Handle, 1, &copyRegion);
+
+		EndSingleTimeCommands(commandBuffer);
+
+		vkDestroyBuffer(Vulkan.Device, Vulkan.StagingBuffer.Handle, nullptr);
+		vkFreeMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, nullptr);
 
 		return true;
 	}
@@ -2082,7 +2653,7 @@ namespace StrikeEngine
 		return vkCreateSampler(Vulkan.Device, &samplerCreateInfo, nullptr, sampler) == VK_SUCCESS;
 		}
 	
-	bool StrikeRenderer::CreateImageView(ImageParameters& imgParams)
+	bool StrikeRenderer::CreateImageView(ImageParameters& imgParams, VkFormat format, VkImageAspectFlags aspectFlags)
 	{
 		VkImageViewCreateInfo imgViewCreateInfo =
 		{
@@ -2091,7 +2662,7 @@ namespace StrikeEngine
 			0,
 			imgParams.Handle,
 			VK_IMAGE_VIEW_TYPE_2D,
-			VK_FORMAT_R8G8B8A8_UNORM,
+			format,//VK_FORMAT_R8G8B8A8_UNORM,
 			{
 				VK_COMPONENT_SWIZZLE_IDENTITY,
 				VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -2099,7 +2670,7 @@ namespace StrikeEngine
 				VK_COMPONENT_SWIZZLE_IDENTITY
 			},
 			{
-				VK_IMAGE_ASPECT_COLOR_BIT,
+				aspectFlags,
 				0,
 				1,
 				0,
@@ -2138,7 +2709,7 @@ namespace StrikeEngine
 		return false;
 	}
 	
-	bool StrikeRenderer::CreateImage(uint32_t width, uint32_t height, VkImage* image)
+	bool StrikeRenderer::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image)
 	{
 		VkImageCreateInfo imgCreateInfo =
 		{
@@ -2146,7 +2717,7 @@ namespace StrikeEngine
 			nullptr,
 			0,
 			VK_IMAGE_TYPE_2D,
-			VK_FORMAT_R8G8B8A8_UNORM,
+			format,//VK_FORMAT_R8G8B8A8_UNORM,
 			{
 				width,
 				height,
@@ -2155,18 +2726,18 @@ namespace StrikeEngine
 			1,
 			1,
 			VK_SAMPLE_COUNT_1_BIT,
-			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			tiling,
+			usage,//VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_SHARING_MODE_EXCLUSIVE,
 			0,
 			nullptr,
 			VK_IMAGE_LAYOUT_UNDEFINED
 		};
 	
-		return vkCreateImage(Vulkan.Device, &imgCreateInfo, nullptr, image) == VK_SUCCESS;
+		return vkCreateImage(Vulkan.Device, &imgCreateInfo, nullptr, &image) == VK_SUCCESS;
 	}
 	
-	bool StrikeRenderer::AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory)
+	bool StrikeRenderer::AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlags property, VkDeviceMemory* memory)
 	{
 		VkMemoryRequirements bufferMemoryRequirements;
 		vkGetBufferMemoryRequirements(Vulkan.Device, buffer, &bufferMemoryRequirements);
@@ -2194,7 +2765,7 @@ namespace StrikeEngine
 		return false;
 	}
 	
-	bool StrikeRenderer::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlagBits memoryProperty, BufferParameters& buffer)
+	bool StrikeRenderer::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryProperty, BufferParameters& buffer)
 	{
 		VkBufferCreateInfo bufferCreateInfo =
 		{

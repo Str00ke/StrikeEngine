@@ -1,22 +1,20 @@
 #version 450
 
-layout(set=0, binding=1) uniform u_UniformBuffer
-{
-    mat4 u_ProjectionMatrix;
-};
+layout(binding = 0) uniform UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+} ubo;
 
-layout(location = 0) in vec4 i_Position;
-layout(location = 1) in vec2 i_Texcoord;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inColor;
+layout(location = 2) in vec2 inTexCoord;
 
-out gl_PerVertex
-{
-    vec4 gl_Position;
-};
+layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec2 fragTexCoord;
 
-layout(location = 0) out vec2 v_Texcoord;
-
-void main()
-{
-    gl_Position = u_ProjectionMatrix * i_Position;
-    v_Texcoord = i_Texcoord;
+void main() {
+    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+    fragColor = inColor;
+    fragTexCoord = inTexCoord;
 }

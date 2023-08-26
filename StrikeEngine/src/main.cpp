@@ -18,27 +18,57 @@ int main() {
 		return -1;
 	}
 
-	if (!rend.CreateRenderingResources())
-	{
-		return -1;
-	}
-
 	if (!rend.CreateStagingBuffer())
 	{
 		return -1;
 	}
 
-	if (!rend.CreateTexture())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateUniformBuffer())
+	if(!rend.CreateRenderPass())
 	{
 		return -1;
 	}
 
 	if (!rend.CreateDescriptorSetLayout())
+	{
+		return -1;
+	}
+
+	if (!rend.CreatePipelineLayout())
+	{
+		return -1;
+	}
+
+	if (!rend.CreatePipeline())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateCommandBuffers())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateDepthResources())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateObject())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateVertexBuffer())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateIndexBuffer())
+	{
+		return -1;
+	}
+
+	if (!rend.CreateUniformBuffer())
 	{
 		return -1;
 	}
@@ -58,22 +88,7 @@ int main() {
 		return -1;
 	}
 
-	if(!rend.CreateRenderPass())
-	{
-		return -1;
-	}
-
-	if (!rend.CreatePipelineLayout())
-	{
-		return -1;
-	}
-
-	if (!rend.CreatePipeline())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateVertexBuffer())
+	if (!rend.CreateRenderingResources())
 	{
 		return -1;
 	}

@@ -4,7 +4,8 @@
 #include <string>
 #include <vector>
 #include <array>
-#include "../Externals/vulkan.h"
+#include "vulkan/vulkan.h"
+//#include "../Externals/vulkan.h"
 
 namespace StrikeEngine 
 {

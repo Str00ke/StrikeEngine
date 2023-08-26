@@ -1,18 +1,49 @@
 #pragma once
-//#include "vulkan/vulkan.h"
-#include "../Externals/vulkan.h"
+#include "vulkan/vulkan.h"
+//#include "../Externals/vulkan.h"
 #include <vector>
 #include "OS.hpp"
+#include <string>
 #include <iostream>
 #include "Tools.hpp"
+#include "Matrix4X4.hpp"
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/hash.hpp"
+
+
 
 namespace StrikeEngine
 {
 
+	const std::vector<const char*> validationLayers =
+	{
+		"VK_LAYER_KHRONOS_validation"
+	};
+
+#ifdef NDEBUG
+	const bool enableValidationLayers = false;
+#else
+	const bool enableValidationLayers = true;
+#endif
+
+
+	//TMP
+	const std::string MODEL_PATH = "../Data/viking_room.obj";
+	const std::string TEXTURE_PATH = "../Data/viking_room.png";
+
 	struct VertexData
 	{
-		float x, y, z, w;
-		float u, v;
+		glm::vec3 pos;
+		glm::vec3 color;
+		glm::vec2 texCoord;
+
+		bool operator==(const VertexData& other) const
+		{
+			return pos == other.pos && color == other.color && texCoord == other.texCoord;
+		}
 	};
 
 	struct ImageParameters
@@ -39,6 +70,13 @@ namespace StrikeEngine
 			Handle(VK_NULL_HANDLE),
 			FamilyIndex(0)
 		{}
+	};
+
+	struct UniformBufferObject
+	{
+		alignas(16) glm::mat4 model;
+		alignas(16) glm::mat4 view;
+		alignas(16) glm::mat4 proj;
 	};
 
 	struct DescriptorSetParameters
@@ -99,6 +137,26 @@ namespace StrikeEngine
 		{}
 	};
 
+	//TMP
+	struct ModelData
+	{
+		std::vector<VertexData> vertices;
+		std::vector<uint32_t> indices;
+		BufferParameters VertexBuffer;
+		VkDeviceMemory vertexBufferMemory;
+		BufferParameters indexBuffer;
+		VkDeviceMemory indexBufferMemory;
+
+		ModelData() :
+			vertices(),
+			indices(),
+			VertexBuffer(),
+			vertexBufferMemory(VK_NULL_HANDLE),
+			indexBuffer(),
+			indexBufferMemory(VK_NULL_HANDLE)
+		{}
+	};
+
 	struct VkParams
 	{
 		VkInstance Instance;
@@ -121,10 +179,12 @@ namespace StrikeEngine
 		std::vector<RenderingResourceData> RenderingResources;
 		VkCommandPool CommandPool;
 		ImageParameters Image;
+		ImageParameters DepthImage;
 		DescriptorSetParameters DescriptorSet;
 		VkPipelineLayout PipelineLayout;
 		BufferParameters UniformBuffer;
-
+		ModelData Model;
+		void* UniformBufferMapped;
 
 		static const size_t ResourcesCount = 3;
 
@@ -148,8 +208,11 @@ namespace StrikeEngine
 			VertexBuffer(),
 			StagingBuffer(),
 			Image(),
+			DepthImage(),
 			PipelineLayout(),
-			UniformBuffer()
+			UniformBuffer(),
+			Model(),
+			UniformBufferMapped(nullptr)
 
 		{}
 	};
@@ -177,6 +240,7 @@ namespace StrikeEngine
 		bool CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView);
 		bool CreatePipeline();
 		bool CreateVertexBuffer();
+		bool CreateIndexBuffer();
 		bool CreateStagingBuffer();
 		bool CopyVertexData();
 		bool CreateRenderingResources();
@@ -187,7 +251,8 @@ namespace StrikeEngine
 		bool UpdateDescriptorSet();
 		bool CreatePipelineLayout();
 		bool CreateUniformBuffer();
-
+		bool CreateObject();
+		bool CreateDepthResources();
 
 	private:
 		StrikeWindow* m_strikeWin;
@@ -224,34 +289,42 @@ namespace StrikeEngine
 
 		bool CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPool* pool);
 		bool AllocateCommandBuffers(VkCommandPool pool, uint32_t count, VkCommandBuffer* commandBuffers);;
-		bool AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory);
+		bool AllocateBufferMemory(VkBuffer buffer, VkMemoryPropertyFlags property, VkDeviceMemory* memory);
 		bool CreateFences();
 		bool PrepareFrame(VkCommandBuffer cmdBuffer, const ImageParameters& imgParams, VkFramebuffer& frameBuffer);
 	
-		bool CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlagBits memoryProperty, BufferParameters& buffer);
+		bool CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryProperty, BufferParameters& buffer);
 		void DestroyBuffer(BufferParameters& buffer);
 		const std::vector<float>& GetVertexData() const;
 
 		
 
-		bool CreateImage(uint32_t width, uint32_t height, VkImage* image);
+		bool CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image);
 		bool AllocateImageMemory(VkImage image, VkMemoryPropertyFlagBits property, VkDeviceMemory* memory);
-		bool CreateImageView(ImageParameters& imgParams);
+		bool CreateImageView(ImageParameters& imgParams, VkFormat format, VkImageAspectFlags aspectFlags);
 		bool CreateSampler(VkSampler* sampler);
 		bool CopyTextureData(char* textureData, uint32_t dataSize, uint32_t width, uint32_t height);
 
 		bool CopyUniformBufferData();
 		const std::array<float, 16> GetUniformBufferData() const;
-		
 
-		VkPhysicalDevice              GetPhysicalDevice() const;
-		VkDevice                      GetDevice() const;
+		bool UpdateUniformBuffer();
+		bool LoadModel(ModelData& modelData);
 
-		const QueueParameters         GetGraphicsQueue() const;
-		const QueueParameters         GetPresentQueue() const;
+		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+		VkFormat FindDepthFormat();
+		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-		const SwapChainParameters& GetSwapChain() const;
+		bool HasStencilComponent(VkFormat format);
+
+		VkCommandBuffer BeginSingleTimeCommands();
+		bool EndSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+		bool CheckValidationLayerSupport();
+		bool TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+		bool CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 	};
 
 
 }
+

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include "Tools.hpp"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "../Externals/stb_image.h"
 
@@ -34,7 +35,6 @@ namespace StrikeEngine
 
 		std::vector<char> GetImageData(const std::string& filename, int requestedComponents, int* width, int* height, int* components, int* dataSize)
 		{
-
 			std::vector<char> fileData = Tools::GetBinaryFileContents(filename);
 			if (fileData.size() == 0)
 				return std::vector<char>();
@@ -66,6 +66,7 @@ namespace StrikeEngine
 
 			stbi_image_free(imgData);
 			return output;
+
 
 		}
 

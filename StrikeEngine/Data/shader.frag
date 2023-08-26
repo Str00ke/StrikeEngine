@@ -1,12 +1,12 @@
 #version 450
 
-layout(set=0, binding=0) uniform sampler2D u_Texture;
+layout(binding = 1) uniform sampler2D texSampler;
 
-layout(location = 0) in vec2 v_Texcoord;
+layout(location = 0) in vec3 fragColor;
+layout(location = 1) in vec2 fragTexCoord;
 
-layout(location = 0) out vec4 o_Color;
+layout(location = 0) out vec4 outColor;
 
-void main()
-{
-  o_Color = texture( u_Texture, v_Texcoord );
+void main() {
+    outColor = texture(texSampler, fragTexCoord);
 }

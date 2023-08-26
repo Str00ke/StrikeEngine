@@ -12,7 +12,9 @@
 //#define VK_NO_PROTOTYPES
 //#endif
 
-#include "../Externals/vulkan.h"
+//#include "../Externals/vulkan.h"
+#include "vulkan/vulkan.h"
+
 
 namespace StrikeEngine
 {
