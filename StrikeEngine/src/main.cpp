@@ -3,92 +3,30 @@
 #include "StrikeApp.hpp"
 #include "StrikeRenderer.hpp"
 #include "OS.hpp"
+#include "Model.hpp"
 
 int main() {
 
+	StrikeEngine::StrikeApp app;
 	StrikeEngine::StrikeWindow window;
 	StrikeEngine::StrikeRenderer rend(&window);
 	// Window creation
-	if (!window.Create("Strike Test")) {
+	if (!window.Create("Strike Test", 1200, 800)) {
 		return -1;
 	}
+
+	StrikeEngine::Model model;
+	model.GetMesh().SetPath("../Data/viking_room.obj");
+	model.GetTexture().SetPath("../Data/viking_room.png");
+
+	StrikeEngine::Model model2;
+	model2.GetMesh().SetPath("../Data/Gear2.obj");
+	model2.GetTexture().SetPath("../Data/Gear_2_BaseColor.png");
+
+	StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&model);
+	StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&model2);
 
 	if (!rend.InitVulkan())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateStagingBuffer())
-	{
-		return -1;
-	}
-
-	if(!rend.CreateRenderPass())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateDescriptorSetLayout())
-	{
-		return -1;
-	}
-
-	if (!rend.CreatePipelineLayout())
-	{
-		return -1;
-	}
-
-	if (!rend.CreatePipeline())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateCommandBuffers())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateDepthResources())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateObject())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateVertexBuffer())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateIndexBuffer())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateUniformBuffer())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateDescriptorPool())
-	{
-		return -1;
-	}
-
-	if (!rend.AllocateDescriptorSet())
-	{
-		return -1;
-	}
-
-	if (!rend.UpdateDescriptorSet())
-	{
-		return -1;
-	}
-
-	if (!rend.CreateRenderingResources())
 	{
 		return -1;
 	}

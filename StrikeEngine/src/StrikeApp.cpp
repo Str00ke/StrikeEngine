@@ -1,4 +1,6 @@
 #include "StrikeApp.hpp"
+#include "RenderableResourceController.hpp"
+
 
 namespace StrikeEngine
 {
@@ -9,6 +11,7 @@ namespace StrikeEngine
 	{
 		m_isRunning = true;
 		m_Instance = this;
+		//resourceController = new RenderableResourceController();
 	}
 
 	bool StrikeApp::IsRunning() const
@@ -25,5 +28,10 @@ namespace StrikeEngine
 	{
 		m_isRunning = false;
 	}
+
+	/*RenderableResourceController* StrikeApp::GetResourceController()
+	{
+		return resourceController;
+	}*/
 
 }

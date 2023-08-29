@@ -139,7 +139,7 @@ namespace StrikeEngine
 	}
 
 
-	bool StrikeWindow::Create(const char* title)
+	bool StrikeWindow::Create(const char* title, const float& width, const float& height)
 	{
 
 		m_params.Instance = GetModuleHandle(nullptr);
@@ -191,7 +191,7 @@ namespace StrikeEngine
 			WS_VISIBLE | WS_OVERLAPPEDWINDOW,		// Window style
 
 			//Size and position
-			CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+			CW_USEDEFAULT, CW_USEDEFAULT, width, height,
 
 			NULL,									// Parent window
 			NULL,									// Menu

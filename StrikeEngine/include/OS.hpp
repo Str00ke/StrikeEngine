@@ -67,7 +67,7 @@ namespace StrikeEngine
 		StrikeWindow(StrikeWindow&&) = delete;
 		~StrikeWindow();
 
-		bool Create(const char* title);
+		bool Create(const char* title, const float& width, const float& height);
 		bool RenderingLoop(OS::Window& window) const;
 		OS::WindowParameters GetParams() const;
 
