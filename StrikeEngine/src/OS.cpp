@@ -3,6 +3,9 @@
 #include <stdexcept>
 #include <thread>
 #include <chrono>
+#include "Time.hpp"
+#include <stdio.h>
+#include "InputSystem.hpp"
 
 namespace StrikeEngine
 {
@@ -226,6 +229,8 @@ namespace StrikeEngine
 		bool res = true;
 
 		while (loop) {
+			Time::Update();
+			HandleKeyMsg();
 			if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
 				// Process events
 				switch (message.message) {
@@ -264,6 +269,79 @@ namespace StrikeEngine
 		}
 
 		return res;
+	}
+
+	void StrikeWindow::HandleKeyMsg() const
+	{
+		MSG message;
+		if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
+			// Process events
+			switch (message.message)
+			{
+			case WM_KEYDOWN:
+			{
+				//printf("WM_KEYDOWN: 0x%x\n", message.wParam);
+				InputSystem::Instance()->OnKeyDown(message.wParam);
+				break;
+			}
+			case WM_KEYUP:
+			{
+				//printf("WM_KEYUP: 0x%x\n", message.wParam);
+				InputSystem::Instance()->OnKeyUp(message.wParam);
+				break;
+			}
+			case WM_CHAR:
+			{
+				//printf("WM_CHAR: %c\n", (wchar_t)message.wParam);
+				break;
+			}
+			case WM_LBUTTONDOWN:
+			{
+				//printf("Left click dwn");
+				break;
+			}
+			case WM_LBUTTONUP:
+			{
+				//printf("Left click up");
+				break;
+			}
+			case WM_LBUTTONDBLCLK:
+			{
+				//printf("Left click dbl");
+				break;
+			}
+			case WM_RBUTTONDOWN:
+			{
+				//printf("Right click dwn");
+				break;
+			}
+			case WM_RBUTTONUP:
+			{
+				//printf("Right click up");
+				break;
+			}
+			case WM_RBUTTONDBLCLK:
+			{
+				//printf("Right click dbl");
+				break;
+			}
+			case WM_MBUTTONDOWN:
+			{
+				//printf("Mid click dwn");
+				break;
+			}
+			case WM_MBUTTONUP:
+			{
+				//printf("Mid click up");
+				break;
+			}
+			case WM_MBUTTONDBLCLK:
+			{
+				//printf("Mid click dbl");
+				break;
+			}
+			}
+		}
 	}
 
 }

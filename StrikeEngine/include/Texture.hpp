@@ -4,6 +4,7 @@
 #include "vulkan/vulkan.h"
 
 
+
 namespace StrikeEngine
 {
 	struct ImageParams
@@ -35,11 +36,12 @@ namespace StrikeEngine
 	};
 
 	class StrikeRenderer;
+	class Model;
 	class Texture : public Asset
 	{
 	public:
 
-		bool Create(StrikeRenderer* renderer);
+		bool Create(StrikeRenderer* renderer, Model* model);
 		bool CreateDepthTexture(StrikeRenderer* renderer);
 		ImageParams& GetImgParams();
 		DescriptorSetParameters& GetDescParams();
@@ -54,7 +56,7 @@ namespace StrikeEngine
 		bool CreateDescriptorSetLayout();
 		bool CreateDescriptorPool();
 		bool AllocateDescriptorSet();
-		bool UpdateDescriptorSet();
+		bool UpdateDescriptorSet(Model* model);
 
 		ImageParams m_ImgParams;
 		DescriptorSetParameters m_DescParams;

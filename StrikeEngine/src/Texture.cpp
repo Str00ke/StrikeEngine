@@ -1,5 +1,6 @@
 #include "Texture.hpp"
 #include "StrikeRenderer.hpp"
+#include "Model.hpp"
 
 namespace StrikeEngine
 {
@@ -297,7 +298,7 @@ namespace StrikeEngine
 
 	}
 
-	bool Texture::Create(StrikeRenderer* renderer)
+	bool Texture::Create(StrikeRenderer* renderer, Model* model)
 	{
 		if (!CreateDescriptorSetLayout()) return false;
 
@@ -375,7 +376,7 @@ namespace StrikeEngine
 			return false;
 		}*/
 
-		if (!UpdateDescriptorSet()) return false;
+		if (!UpdateDescriptorSet(model)) return false;
 
 
 		return true;
@@ -546,7 +547,7 @@ namespace StrikeEngine
 		return true;
 	}
 
-	bool Texture::UpdateDescriptorSet()
+	bool Texture::UpdateDescriptorSet(Model* model)
 	{
 		/*VkDescriptorImageInfo imgInfo =
 		{
@@ -594,7 +595,7 @@ namespace StrikeEngine
 		*/
 
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = StrikeRenderer::Instance()->GetVulkanParameters().UniformBuffer.Handle;
+		bufferInfo.buffer = model->GetUniformBuffer().Handle;
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 

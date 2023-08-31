@@ -69,6 +69,7 @@ namespace StrikeEngine
 
 		bool Create(const char* title, const float& width, const float& height);
 		bool RenderingLoop(OS::Window& window) const;
+		void HandleKeyMsg() const;
 		OS::WindowParameters GetParams() const;
 
 	private:

@@ -1,7 +1,7 @@
 #include "StrikeRenderer.hpp"
 #include <vector>
 #include "VkFunctions.hpp"
-#include <chrono>
+#include "Time.hpp"
 #include "Vertex.hpp"
 #include "RenderableResourceController.hpp"
 #include "Model.hpp"
@@ -706,7 +706,7 @@ namespace StrikeEngine
 		return true;
 	}
 
-	StrikeEngine::VkParams& StrikeRenderer::GetVulkanParameters()
+	VkParams& StrikeRenderer::GetVulkanParameters()
 	{
 		return Vulkan;
 	}
@@ -826,85 +826,85 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CopyUniformBufferData()
 	{
-		const std::array<float, 16> uniformData = GetUniformBufferData();
+		//const std::array<float, 16> uniformData = GetUniformBufferData();
 
-		void* stagingBufferMemoryPointer;
-		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.UniformBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
-		{
-			std::cout << "Could not map memory and upload data to a staging buffer" << std::endl;
-			return false;
-		}
+		//void* stagingBufferMemoryPointer;
+		//if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.UniformBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
+		//{
+		//	std::cout << "Could not map memory and upload data to a staging buffer" << std::endl;
+		//	return false;
+		//}
 
-		memcpy(stagingBufferMemoryPointer, uniformData.data(), Vulkan.UniformBuffer.Size);
+		//memcpy(stagingBufferMemoryPointer, uniformData.data(), Vulkan.UniformBuffer.Size);
 
-		VkMappedMemoryRange flushRange =
-		{
-			VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-			nullptr,
-			Vulkan.StagingBuffer.Memory,
-			0,
-			Vulkan.UniformBuffer.Size
-		};
+		//VkMappedMemoryRange flushRange =
+		//{
+		//	VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+		//	nullptr,
+		//	Vulkan.StagingBuffer.Memory,
+		//	0,
+		//	Vulkan.UniformBuffer.Size
+		//};
 
-		vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
+		//vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
 
-		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+		//vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
 
-		//Prepare cmd buffer to copy data from the staging buffer to the uniform buffer
-		VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
+		////Prepare cmd buffer to copy data from the staging buffer to the uniform buffer
+		//VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
 
-		VkCommandBufferBeginInfo cmdBufferBeginInfo =
-		{
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			nullptr,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			nullptr
-		};
+		//VkCommandBufferBeginInfo cmdBufferBeginInfo =
+		//{
+		//	VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		//	nullptr,
+		//	VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		//	nullptr
+		//};
 
-		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+		//vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
 
-		VkBufferCopy bufferCopyInfo =
-		{
-			0,
-			0,
-			Vulkan.UniformBuffer.Size
-		};
-		vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.UniformBuffer.Handle, 1, &bufferCopyInfo);
+		//VkBufferCopy bufferCopyInfo =
+		//{
+		//	0,
+		//	0,
+		//	Vulkan.UniformBuffer.Size
+		//};
+		//vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.UniformBuffer.Handle, 1, &bufferCopyInfo);
 
-		VkBufferMemoryBarrier bufferMemoryBarrier =
-		{
-			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-			nullptr,
-			VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_ACCESS_UNIFORM_READ_BIT,
-			VK_QUEUE_FAMILY_IGNORED,
-			VK_QUEUE_FAMILY_IGNORED,
-			Vulkan.UniformBuffer.Handle,
-			0,
-			VK_WHOLE_SIZE
-		};
-		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
+		//VkBufferMemoryBarrier bufferMemoryBarrier =
+		//{
+		//	VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+		//	nullptr,
+		//	VK_ACCESS_TRANSFER_WRITE_BIT,
+		//	VK_ACCESS_UNIFORM_READ_BIT,
+		//	VK_QUEUE_FAMILY_IGNORED,
+		//	VK_QUEUE_FAMILY_IGNORED,
+		//	Vulkan.UniformBuffer.Handle,
+		//	0,
+		//	VK_WHOLE_SIZE
+		//};
+		//vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
 
-		vkEndCommandBuffer(cmdBuffer);
+		//vkEndCommandBuffer(cmdBuffer);
 
-		//Submit the cmd buffer and copy data from the staging buffer to the vertex buffer
-		VkSubmitInfo submitInfo =
-		{
-			VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			nullptr,
-			0,
-			nullptr,
-			nullptr,
-			1,
-			&cmdBuffer,
-			0,
-			nullptr
-		};
+		////Submit the cmd buffer and copy data from the staging buffer to the vertex buffer
+		//VkSubmitInfo submitInfo =
+		//{
+		//	VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		//	nullptr,
+		//	0,
+		//	nullptr,
+		//	nullptr,
+		//	1,
+		//	&cmdBuffer,
+		//	0,
+		//	nullptr
+		//};
 
-		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
-			return false;
+		//if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+		//	return false;
 
-		vkDeviceWaitIdle(Vulkan.Device);
+		//vkDeviceWaitIdle(Vulkan.Device);
 		return true;
 
 	}
@@ -1108,39 +1108,10 @@ namespace StrikeEngine
 		return true;
 	}
 
-	bool StrikeRenderer::CreateUniformBuffer()
-	{
-		Vulkan.UniformBuffer.Size = sizeof(UniformBufferObject);
-		/*if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.UniformBuffer))
-		{
-			std::cout << "Could not create uniform buffer" << std::endl;
-			return false;
-		}*/
-		if (!CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, Vulkan.UniformBuffer))
-		{
-			std::cout << "Could not create uniform buffer" << std::endl;
-			return false;
-		}
-
-		//if (!CopyUniformBufferData())
-		//	return false;
-
-		const std::array<float, 16> uniformData = GetUniformBufferData();
-
-		void* stagingBufferMemoryPointer;
-		if (vkMapMemory(Vulkan.Device, Vulkan.UniformBuffer.Memory, 0, Vulkan.UniformBuffer.Size, 0, &Vulkan.UniformBufferMapped) != VK_SUCCESS)
-		{
-			std::cout << "Could not map memory and upload data to a staging buffer" << std::endl;
-			return false;
-		}
-
-		return true;
-	}
-
 	bool StrikeRenderer::CreatePipeline()
 	{
-		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> vertexShaderModule = CreateShaderModule("../Data/vert.spv");
-		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> fragmentShaderModule = CreateShaderModule("../Data/frag.spv");
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> vertexShaderModule = CreateShaderModule("C:/Users/Charlelie/Desktop/Engines/StrikeEngine/StrikeEngine/Data/vert.spv");
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> fragmentShaderModule = CreateShaderModule("C:/Users/Charlelie/Desktop/Engines/StrikeEngine/StrikeEngine/Data/frag.spv");
 
 		if (!vertexShaderModule || !fragmentShaderModule)
 			return false;
@@ -1479,7 +1450,11 @@ namespace StrikeEngine
 			return false;
 		}
 
-		UpdateUniformBuffer();
+		for (auto& model : toRend)
+		{
+			model->UpdateUniformBuffer();
+		}
+
 		vkResetFences(Vulkan.Device, 1, &currentRenderingResource.Fence);
 
 		VkResult res = vkAcquireNextImageKHR(Vulkan.Device, swapChain, UINT64_MAX, currentRenderingResource.ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
@@ -1804,9 +1779,6 @@ namespace StrikeEngine
 
 		if (!CreateCommandBuffers()) return false;
 
-		if (!CreateUniformBuffer()) return false;
-
-
 		for (size_t i = 0; i < toRend.size(); ++i)
 		{
 			if (!toRend[i]->Create()) return false;
@@ -2005,11 +1977,9 @@ namespace StrikeEngine
 
 				vkCmdBindIndexBuffer(cmdBuffer, toRend[i]->GetMesh().GetIndexBuffer().m_Handle.Handle, 0, VK_INDEX_TYPE_UINT32);
 
+				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.PipelineLayout, 0, 1, &toRend[i]->GetTexture().GetDescParams().Handle, 0, nullptr);
 				//vkCmdDraw(cmdBuffer, 4, 1, 0, 0);
 				vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(toRend[i]->GetMesh().GetIndexBuffer().m_Buffer.size()), 1, 0, 0, 0);
-
-				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.PipelineLayout, 0, 1, &toRend[(size - 1) - i]->GetTexture().GetDescParams().Handle, 0, nullptr);
-
 			}
 		}
 
@@ -2172,22 +2142,5 @@ namespace StrikeEngine
 
 	}
 
-	
-	bool StrikeRenderer::UpdateUniformBuffer()
-	{
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currTime - startTime).count();
-
-		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), Vulkan.SwapChain.Extent.width / (float)Vulkan.SwapChain.Extent.height, 0.1f, 10.0f);
-		ubo.proj[1][1] *= -1;
-
-		memcpy(Vulkan.UniformBufferMapped, &ubo, sizeof(ubo));
-		return true;
-	}
 	
 }

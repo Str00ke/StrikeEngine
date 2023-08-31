@@ -8,10 +8,7 @@
 #include "Tools.hpp"
 #include "Matrix4X4.hpp"
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/hash.hpp"
+
 
 namespace StrikeEngine
 {
@@ -55,12 +52,7 @@ namespace StrikeEngine
 		{}
 	};
 
-	struct UniformBufferObject
-	{
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
-	};
+	
 
 	struct BufferParameters
 	{
@@ -128,8 +120,7 @@ namespace StrikeEngine
 		std::vector<RenderingResourceData> RenderingResources;
 		VkCommandPool CommandPool;
 		VkPipelineLayout PipelineLayout;
-		BufferParameters UniformBuffer;
-		void* UniformBufferMapped;
+
 
 		static const size_t ResourcesCount = 3;
 
@@ -151,10 +142,7 @@ namespace StrikeEngine
 			CommandPool(VK_NULL_HANDLE),
 			RenderingResources(ResourcesCount),
 			StagingBuffer(),
-			PipelineLayout(),
-			UniformBuffer(),
-			UniformBufferMapped(nullptr)
-
+			PipelineLayout()
 		{}
 	};
 
@@ -188,7 +176,6 @@ namespace StrikeEngine
 		bool CopyVertexData();
 		bool CreateRenderingResources();
 		bool CreatePipelineLayout();
-		bool CreateUniformBuffer();
 		bool CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryProperty, BufferParameters& buffer);
 		bool CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 		VkCommandBuffer BeginSingleTimeCommands();
@@ -248,8 +235,6 @@ namespace StrikeEngine
 
 		bool CopyUniformBufferData();
 		const std::array<float, 16> GetUniformBufferData() const;
-
-		bool UpdateUniformBuffer();
 
 		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 		
