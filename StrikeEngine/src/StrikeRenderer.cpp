@@ -6,6 +6,8 @@
 #include "RenderableResourceController.hpp"
 #include "Model.hpp"
 #include "Renderable.hpp"
+#include "Camera.hpp"
+
 
 namespace StrikeEngine
 {
@@ -1449,7 +1451,7 @@ namespace StrikeEngine
 			std::cout << "Waiting for fence takes too long" << std::endl;
 			return false;
 		}
-
+		Camera::Instance()->Update();
 		for (auto& model : toRend)
 		{
 			model->UpdateUniformBuffer();

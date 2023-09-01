@@ -1,6 +1,6 @@
 #include "Model.hpp"
 #include "Time.hpp"
-
+#include "Camera.hpp"
 
 namespace StrikeEngine
 {
@@ -38,10 +38,20 @@ namespace StrikeEngine
 		float time = Time::GetCurrTime();
 
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), /*time * glm::radians(45.0f)*/glm::radians(testAngle), glm::vec3(0.0f, 0.0f, 1.0f));
+		/*ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.proj = glm::perspective(glm::radians(45.0f), StrikeRenderer::Instance()->GetVulkanParameters().SwapChain.Extent.width / (float)StrikeRenderer::Instance()->GetVulkanParameters().SwapChain.Extent.height, 0.1f, 10.0f);
-		ubo.proj[1][1] *= -1;
+		ubo.proj[1][1] *= -1;*/
+
+		ubo.model.Identity();
+		ubo.model.m_mat[3][0] = pos.x;
+		ubo.model.m_mat[3][1] = pos.y;
+		ubo.model.m_mat[3][2] = pos.z;
+		ubo.view = Camera::Instance()->m_viewCam;
+		ubo.proj = Camera::Instance()->m_projCam;
+		auto camVec = Camera::Instance()->m_worldCam.GetTranslation();
+		Vector4f vec{ camVec.x, camVec.y, camVec.z, 1.0f };
+		ubo.camPos = vec;
 
 		memcpy(UniformBufferMapped, &ubo, sizeof(ubo));
 		return true;

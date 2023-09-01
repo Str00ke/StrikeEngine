@@ -3,20 +3,13 @@
 #include "Texture.hpp"
 #include "Renderable.hpp"
 #include "StrikeRenderer.hpp"
+#include "UniformBufferObject.hpp"
+#include "Vector3.hpp"
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/hash.hpp"
 
 namespace StrikeEngine
 {
-	struct UniformBufferObject
-	{
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
-	};
+	
 
 	class Model : public Renderable
 	{
@@ -34,6 +27,7 @@ namespace StrikeEngine
 		bool UpdateUniformBuffer();
 
 		float testAngle;
+		Vector3f pos{1.0f, 1.0f , 1.0f};
 
 	private:
 		Mesh m_mesh;
