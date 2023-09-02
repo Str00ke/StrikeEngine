@@ -187,6 +187,8 @@ namespace StrikeEngine
 
 		std::vector<Model*> toRend = {};
 
+		StrikeWindow* GetStrikeWindow();
+
 	private:
 		StrikeWindow* m_strikeWin;
 

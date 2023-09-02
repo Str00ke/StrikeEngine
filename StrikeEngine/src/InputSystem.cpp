@@ -1,6 +1,10 @@
 #include "InputSystem.hpp"
 #include <stdexcept>
 
+#include <iostream>
+#include "StrikeRenderer.hpp"
+
+
 namespace StrikeEngine
 {
 	InputSystem* InputSystem::m_instance = nullptr;
@@ -54,7 +58,14 @@ namespace StrikeEngine
 
 	void InputSystem::OnKeyUp(uint16_t keycode)
 	{
-
+		for (size_t i = 0; i < m_keyUpCache.size(); ++i)
+		{
+			if (*m_keyUpCache[i].first == keycode)
+			{
+				m_keyUpCache[i].second();
+				return;
+			}
+		}
 	}
 
 	void InputSystem::OnMouseBtnDown(const MouseCode& code)
@@ -65,6 +76,22 @@ namespace StrikeEngine
 	void InputSystem::OnMouseBtnUp(const MouseCode& code)
 	{
 
+	}
+
+	void InputSystem::OnMouseMove(std::function<void()> callback)
+	{
+		m_mouseMoveCallback = std::move(callback);
+	}
+
+	void InputSystem::GetMouseWindowPosition(Vector2i* vector)
+	{
+		StrikeRenderer::Instance()->GetStrikeWindow()->GetMousePosWindow(vector);
+	}
+
+	void InputSystem::MouseMoveCall()
+	{
+		if(m_mouseMoveCallback)
+			m_mouseMoveCallback();
 	}
 
 }

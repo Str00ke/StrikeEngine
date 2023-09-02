@@ -13,7 +13,8 @@ namespace StrikeEngine
 	{
 		auto currTime = std::chrono::high_resolution_clock::now();
 		m_currTime = std::chrono::duration<float, std::chrono::seconds::period>(currTime - m_startTime).count();
-		//std::cout << m_currTime << std::endl;
+		m_deltaTime = m_currTime - m_prevTime;
+		m_prevTime = m_currTime;
 		return true;
 	}
 
@@ -25,6 +26,11 @@ namespace StrikeEngine
 	float Time::GetCurrTime()
 	{
 		return m_currTime;
+	}
+
+	const float Time::DeltaTime()
+	{
+		return m_deltaTime;
 	}
 
 }

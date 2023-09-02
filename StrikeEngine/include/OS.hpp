@@ -10,7 +10,9 @@
 //#ifdef VK_USE_PLATFORM_WIN32_KHR
 
 #endif //Platform used
+#include "Vector2.hpp"
 #include <Windows.h>
+
 
 namespace StrikeEngine
 {
@@ -69,8 +71,10 @@ namespace StrikeEngine
 
 		bool Create(const char* title, const float& width, const float& height);
 		bool RenderingLoop(OS::Window& window) const;
-		void HandleKeyMsg() const;
+		LRESULT HandleKeyMsg(MSG msg) const;
 		OS::WindowParameters GetParams() const;
+
+		void GetMousePosWindow(Vector2i* vec);
 
 	private:
 		OS::WindowParameters m_params;

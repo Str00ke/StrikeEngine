@@ -1,6 +1,7 @@
 #include "Camera.hpp"
 #include "Matrix4X4.hpp"
 #include "StrikeRenderer.hpp"
+#include "Math.hpp"
 
 namespace StrikeEngine
 {
@@ -50,7 +51,38 @@ namespace StrikeEngine
 		m_viewCam = worldCam;
 
 		auto& vk = StrikeRenderer::Instance()->GetVulkanParameters();
-		m_projCam.SetPerspectiveProjectionMatrix(vk.SwapChain.Extent.width / (float)vk.SwapChain.Extent.height, 1.57f, 0.1f, 100.0f);
+		m_projCam.SetPerspectiveProjectionMatrix(vk.SwapChain.Extent.width / (float)vk.SwapChain.Extent.height, m_fov, m_nearClip, m_farClip);
+	}
+
+	float Camera::GetFOV() const
+	{
+		return m_fov;
+	}
+
+	void Camera::SetFOV(float newFov)
+	{
+		//m_fov = Math::Max<float>(0.1f, newFov); //FIXME: Unresolved external
+		m_fov = newFov > 0.1f ? newFov : 0.1f;
+	}
+
+	float Camera::GetFarClip() const
+	{
+		return m_farClip;
+	}
+
+	void Camera::SetFarClip(float newFar)
+	{
+		m_farClip = newFar > 0.1f ? newFar : 0.1f;
+	}
+
+	float Camera::GetNearClip() const
+	{
+		return m_nearClip;
+	}
+
+	void Camera::SetNearClip(float newNear)
+	{
+		m_nearClip = newNear > 0.1f ? newNear : 0.1f;
 	}
 
 }

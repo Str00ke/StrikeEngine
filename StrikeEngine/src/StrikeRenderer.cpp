@@ -713,6 +713,11 @@ namespace StrikeEngine
 		return Vulkan;
 	}
 
+	StrikeWindow* StrikeRenderer::GetStrikeWindow()
+	{
+		return m_strikeWin;
+	}
+
 	Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> StrikeRenderer::CreateShaderModule(const char* filename)
 	{
 		const std::vector<char> code = Tools::GetBinaryFileContents(filename);

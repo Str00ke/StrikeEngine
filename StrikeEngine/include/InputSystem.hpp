@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <vector>
+#include "Vector2.hpp"
 
 namespace StrikeEngine
 {
@@ -60,9 +61,15 @@ namespace StrikeEngine
 		void OnKeyUp(uint16_t keycode);
 		void OnMouseBtnDown(const MouseCode& code);
 		void OnMouseBtnUp(const MouseCode& code);
+		void OnMouseMove(std::function<void()> callback);
+
+		void GetMouseWindowPosition(Vector2i* vector);
+
+		void MouseMoveCall();
 	private:
 		std::vector<std::pair<const KeyCode*, std::function<void()>>> m_keyDownCache;
 		std::vector<std::pair<const KeyCode*, std::function<void()>>> m_keyUpCache;
+		std::function<void()> m_mouseMoveCallback;
 
 	protected:
 		static InputSystem* m_instance;

@@ -15,6 +15,16 @@ namespace StrikeEngine
 		return m_params;
 	}
 
+	void StrikeWindow::GetMousePosWindow(Vector2i* vec)
+	{
+		HWND hwnd = m_params.Handle;
+		POINT p;
+		GetCursorPos(&p);
+		ScreenToClient(hwnd, &p);
+		vec->x = p.x;
+		vec->y = p.y;
+	}
+
 	StrikeWindow::StrikeWindow() : m_params()
 	{
 	}
@@ -231,8 +241,8 @@ namespace StrikeEngine
 
 		while (loop) {
 			Time::Update();
-			HandleKeyMsg();
 			if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
+				//HandleKeyMsg(message);
 				// Process events
 				switch (message.message) {
 					// Resize
@@ -243,6 +253,76 @@ namespace StrikeEngine
 				case WM_USER + 2:
 					loop = false;
 					break;
+
+				//========Input Managment=========
+				case WM_KEYDOWN: //FIXME: Not working on release
+				{
+					//printf("WM_KEYDOWN: 0x%x\n", message.wParam);
+					InputSystem::Instance()->OnKeyDown(message.wParam);
+					break;
+				}
+				case WM_KEYUP:
+				{
+					//printf("WM_KEYUP: 0x%x\n", message.wParam);
+					InputSystem::Instance()->OnKeyUp(message.wParam);
+					break;
+				}
+				case WM_CHAR:
+				{
+					//printf("WM_CHAR: %c\n", (wchar_t)message.wParam);
+					break;
+				}
+				case WM_LBUTTONDOWN:
+				{
+					//printf("Left click dwn");
+					break;
+				}
+				case WM_LBUTTONUP:
+				{
+					//printf("Left click up");
+					break;
+				}
+				case WM_LBUTTONDBLCLK:
+				{
+					//printf("Left click dbl");
+					break;
+				}
+				case WM_RBUTTONDOWN:
+				{
+					//printf("Right click dwn");
+					break;
+				}
+				case WM_RBUTTONUP:
+				{
+					//printf("Right click up");
+					break;
+				}
+				case WM_RBUTTONDBLCLK:
+				{
+					//printf("Right click dbl");
+					break;
+				}
+				case WM_MBUTTONDOWN:
+				{
+					//printf("Mid click dwn");
+					break;
+				}
+				case WM_MBUTTONUP:
+				{
+					//printf("Mid click up");
+					break;
+				}
+				case WM_MBUTTONDBLCLK:
+				{
+					//printf("Mid click dbl");
+					break;
+				}
+				case WM_MOUSEMOVE:
+				{
+					InputSystem::Instance()->MouseMoveCall();
+					break;
+				}
+				//===================================
 				}
 				TranslateMessage(&message);
 				DispatchMessage(&message);
@@ -272,76 +352,81 @@ namespace StrikeEngine
 		return res;
 	}
 
-	void StrikeWindow::HandleKeyMsg() const
+	LRESULT StrikeWindow::HandleKeyMsg(MSG msg) const
 	{
-		MSG message;
-		if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
-			// Process events
-			switch (message.message)
-			{
-			case WM_KEYDOWN:
-			{
-				//printf("WM_KEYDOWN: 0x%x\n", message.wParam);
-				InputSystem::Instance()->OnKeyDown(message.wParam);
-				break;
-			}
-			case WM_KEYUP:
-			{
-				//printf("WM_KEYUP: 0x%x\n", message.wParam);
-				InputSystem::Instance()->OnKeyUp(message.wParam);
-				break;
-			}
-			case WM_CHAR:
-			{
-				//printf("WM_CHAR: %c\n", (wchar_t)message.wParam);
-				break;
-			}
-			case WM_LBUTTONDOWN:
-			{
-				//printf("Left click dwn");
-				break;
-			}
-			case WM_LBUTTONUP:
-			{
-				//printf("Left click up");
-				break;
-			}
-			case WM_LBUTTONDBLCLK:
-			{
-				//printf("Left click dbl");
-				break;
-			}
-			case WM_RBUTTONDOWN:
-			{
-				//printf("Right click dwn");
-				break;
-			}
-			case WM_RBUTTONUP:
-			{
-				//printf("Right click up");
-				break;
-			}
-			case WM_RBUTTONDBLCLK:
-			{
-				//printf("Right click dbl");
-				break;
-			}
-			case WM_MBUTTONDOWN:
-			{
-				//printf("Mid click dwn");
-				break;
-			}
-			case WM_MBUTTONUP:
-			{
-				//printf("Mid click up");
-				break;
-			}
-			case WM_MBUTTONDBLCLK:
-			{
-				//printf("Mid click dbl");
-				break;
-			}
-			}
+		switch (msg.message)
+		{
+		case WM_KEYDOWN:
+		{
+			//printf("WM_KEYDOWN: 0x%x\n", message.wParam);
+			InputSystem::Instance()->OnKeyDown(msg.wParam);
+			break;
+		}
+		case WM_KEYUP:
+		{
+			//printf("WM_KEYUP: 0x%x\n", message.wParam);
+			InputSystem::Instance()->OnKeyUp(msg.wParam);
+			break;
+		}
+		case WM_CHAR:
+		{
+			//printf("WM_CHAR: %c\n", (wchar_t)message.wParam);
+			break;
+		}
+		case WM_LBUTTONDOWN:
+		{
+			//printf("Left click dwn");
+			break;
+		}
+		case WM_LBUTTONUP:
+		{
+			//printf("Left click up");
+			break;
+		}
+		case WM_LBUTTONDBLCLK:
+		{
+			//printf("Left click dbl");
+			break;
+		}
+		case WM_RBUTTONDOWN:
+		{
+			//printf("Right click dwn");
+			break;
+		}
+		case WM_RBUTTONUP:
+		{
+			//printf("Right click up");
+			break;
+		}
+		case WM_RBUTTONDBLCLK:
+		{
+			//printf("Right click dbl");
+			break;
+		}
+		case WM_MBUTTONDOWN:
+		{
+			//printf("Mid click dwn");
+			break;
+		}
+		case WM_MBUTTONUP:
+		{
+			//printf("Mid click up");
+			break;
+		}
+		case WM_MBUTTONDBLCLK:
+		{
+			//printf("Mid click dbl");
+			break;
+		}
+		case WM_MOUSEMOVE:
+		{
+			InputSystem::Instance()->MouseMoveCall();
+			break;
+		}
+		default://If msg is not handled, this function apply msg by default 
+		{
+			return DefWindowProc(m_params.Handle, msg.message, msg.wParam, msg.lParam);
+		}
 		}
 	}
 
