@@ -1,12 +1,12 @@
 #include <iostream>
 
-#include "StrikeApp.hpp"
-#include "StrikeRenderer.hpp"
-#include "OS.hpp"
-#include "Model.hpp"
-#include "Time.hpp"
-#include "InputSystem.hpp"
-#include "Camera.hpp"
+#include "Core/StrikeApp.hpp"
+#include "Renderer/StrikeRenderer.hpp"
+#include "Core/OS.hpp"
+#include "Model/Model.hpp"
+#include "Core/Time.hpp"
+#include "Input/InputSystem.hpp"
+#include "Model/Camera.hpp"
 
 int main() {
 
