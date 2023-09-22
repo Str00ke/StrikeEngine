@@ -143,7 +143,6 @@ namespace StrikeEngine
 
 
 
-
 		std::vector<const char*> extensions =
 		{
 			VK_KHR_SURFACE_EXTENSION_NAME,

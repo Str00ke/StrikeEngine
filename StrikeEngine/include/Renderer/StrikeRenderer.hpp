@@ -1,5 +1,7 @@
 #pragma once
-#include "vulkan/vulkan.h"
+#define VK_PROTOTYPES
+#define VK_USE_PLATFORM_WIN32_KHR
+#include "vulkan.h"
 //#include "../Externals/vulkan.h"
 #include <vector>
 #include "Core/OS.hpp"

@@ -20,7 +20,7 @@
 #if !defined(VULKAN_FUNCTIONS_HEADER)
 #define VULKAN_FUNCTIONS_HEADER
 
-#include "vulkan/vulkan.h"
+#include "vulkan.h"
 
 //#include "../Externals/vulkan.h"
 

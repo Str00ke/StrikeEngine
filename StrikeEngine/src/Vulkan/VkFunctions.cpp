@@ -13,7 +13,7 @@
 //#endif
 
 //#include "../Externals/vulkan.h"
-#include "vulkan/vulkan.h"
+#include "vulkan.h"
 
 
 namespace StrikeEngine

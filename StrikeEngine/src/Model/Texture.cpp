@@ -1,6 +1,9 @@
 #include "Model/Texture.hpp"
 #include "Renderer/StrikeRenderer.hpp"
 #include "Model/Model.hpp"
+#include "vulkan.h"
+#include <vector>
+
 
 namespace StrikeEngine
 {

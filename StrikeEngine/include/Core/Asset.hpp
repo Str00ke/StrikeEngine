@@ -20,7 +20,7 @@ namespace StrikeEngine
 	protected:
 
 	private:
-		std::string m_assetPath;
+		std::string m_assetPath = "NULL";
 	};
 
 }
