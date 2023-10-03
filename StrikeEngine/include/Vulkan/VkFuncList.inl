@@ -1,27 +1,3 @@
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Copyright 2017 Intel Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not
-// use this file except in compliance with the License.  You may obtain a copy
-// of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
-// License for the specific language governing permissions and limitations
-// under the License.
-////////////////////////////////////////////////////////////////////////////////
-
-// ************************************************************ //
-// Exported functions                                           //
-//                                                              //
-// These functions are always exposed by vulkan libraries.      //
-// ************************************************************ //
-
 #if !defined(VK_EXPORTED_FUNCTION)
 #define VK_EXPORTED_FUNCTION( fun )
 #endif
@@ -42,10 +18,7 @@ VK_EXPORTED_FUNCTION(vkGetInstanceProcAddr)
 #define VK_GLOBAL_LEVEL_FUNCTION( fun )
 #endif
 
-// Tutorial 01
 VK_GLOBAL_LEVEL_FUNCTION(vkCreateInstance)
-
-// Tutorial 02
 VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceExtensionProperties)
 
 #undef VK_GLOBAL_LEVEL_FUNCTION
@@ -62,7 +35,6 @@ VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceExtensionProperties)
 #define VK_INSTANCE_LEVEL_FUNCTION( fun )
 #endif
 
-// Tutorial 01
 VK_INSTANCE_LEVEL_FUNCTION(vkEnumeratePhysicalDevices)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceProperties)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceFeatures)
@@ -70,8 +42,6 @@ VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceQueueFamilyProperties)
 VK_INSTANCE_LEVEL_FUNCTION(vkCreateDevice)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetDeviceProcAddr)
 VK_INSTANCE_LEVEL_FUNCTION(vkDestroyInstance)
-
-// Tutorial 02
 VK_INSTANCE_LEVEL_FUNCTION(vkEnumerateDeviceExtensionProperties)
 #if defined(USE_SWAPCHAIN_EXTENSIONS)
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceSupportKHR)
@@ -88,7 +58,6 @@ VK_INSTANCE_LEVEL_FUNCTION(vkCreateXlibSurfaceKHR)
 #endif
 #endif
 
-// Tutorial 04
 VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceMemoryProperties)
 
 #undef VK_INSTANCE_LEVEL_FUNCTION
@@ -104,12 +73,9 @@ VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceMemoryProperties)
 #define VK_DEVICE_LEVEL_FUNCTION( fun )
 #endif
 
-// Tutorial 01
 VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceQueue)
 VK_DEVICE_LEVEL_FUNCTION(vkDeviceWaitIdle)
 VK_DEVICE_LEVEL_FUNCTION(vkDestroyDevice)
-
-// Tutorial 02
 VK_DEVICE_LEVEL_FUNCTION(vkCreateSemaphore)
 VK_DEVICE_LEVEL_FUNCTION(vkCreateCommandPool)
 VK_DEVICE_LEVEL_FUNCTION(vkAllocateCommandBuffers)
@@ -129,7 +95,6 @@ VK_DEVICE_LEVEL_FUNCTION(vkQueuePresentKHR)
 VK_DEVICE_LEVEL_FUNCTION(vkDestroySwapchainKHR)
 #endif
 
-// Tutorial 03
 VK_DEVICE_LEVEL_FUNCTION(vkCreateImageView)
 VK_DEVICE_LEVEL_FUNCTION(vkCreateRenderPass)
 VK_DEVICE_LEVEL_FUNCTION(vkCreateFramebuffer)
@@ -146,8 +111,6 @@ VK_DEVICE_LEVEL_FUNCTION(vkDestroyPipeline)
 VK_DEVICE_LEVEL_FUNCTION(vkDestroyRenderPass)
 VK_DEVICE_LEVEL_FUNCTION(vkDestroyFramebuffer)
 VK_DEVICE_LEVEL_FUNCTION(vkDestroyImageView)
-
-// Tutorial 04
 VK_DEVICE_LEVEL_FUNCTION(vkCreateFence)
 VK_DEVICE_LEVEL_FUNCTION(vkCreateBuffer)
 VK_DEVICE_LEVEL_FUNCTION(vkGetBufferMemoryRequirements)
@@ -164,11 +127,7 @@ VK_DEVICE_LEVEL_FUNCTION(vkResetFences)
 VK_DEVICE_LEVEL_FUNCTION(vkFreeMemory)
 VK_DEVICE_LEVEL_FUNCTION(vkDestroyBuffer)
 VK_DEVICE_LEVEL_FUNCTION(vkDestroyFence)
-
-// Tutorial 05
 VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBuffer)
-
-// Tutorial 06
 VK_DEVICE_LEVEL_FUNCTION(vkCreateImage)
 VK_DEVICE_LEVEL_FUNCTION(vkGetImageMemoryRequirements)
 VK_DEVICE_LEVEL_FUNCTION(vkBindImageMemory)

@@ -287,104 +287,6 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CheckPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, uint32_t& selectedGraphicsQueueFamilyIndex, uint32_t& selectedPresentQueueFamilyIndex)
 	{
-		// 		uint32_t extensionsCount = 0;
-		// 		if ((vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionsCount, nullptr) != VK_SUCCESS) || (extensionsCount == 0))
-		// 		{
-		// 			std::cout << "Error occurred during physical device " << physicalDevice << " extensions enumeration" << std::endl;
-		// 			return false;
-		// 		}
-		// 
-		// 		std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
-		// 		if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionsCount, availableExtensions.data()) != VK_SUCCESS)
-		// 		{
-		// 			std::cout << "Error occurred during physical device " << physicalDevice << " extensions enumeration" << std::endl;
-		// 			return false;
-		// 		}
-		// 
-		// 		std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-		// 
-		// 		for (size_t i = 0; i < deviceExtensions.size(); ++i)
-		// 		{
-		// 			if (!CheckExtensionAvailability(deviceExtensions[i], availableExtensions))
-		// 			{
-		// 				std::cout << "Physical device " << physicalDevice << " doesn't support extension named\"" << deviceExtensions[i] << "\"!" << std::endl;
-		// 				return false;
-		// 			}
-		// 		}
-		// 
-		// 		VkPhysicalDeviceProperties deviceProperties;
-		// 		VkPhysicalDeviceFeatures deviceFeatures;
-		// 
-		// 		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-		// 		vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
-		// 
-		// 		uint32_t majorVersion = VK_VERSION_MAJOR(deviceProperties.apiVersion);
-		// 		uint32_t minorVersion = VK_VERSION_MINOR(deviceProperties.apiVersion);
-		// 		uint32_t patchVersion = VK_VERSION_PATCH(deviceProperties.apiVersion);
-		// 
-		// 		if ((majorVersion < 1) || (deviceProperties.limits.maxImageDimension2D < 4096))
-		// 		{
-		// 			std::cout << "Physical device " << physicalDevice << " doesn't support required parameters" << std::endl;
-		// 			return false;
-		// 		}
-		// 
-		// 		uint32_t queueFamiliesCount = 0;
-		// 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamiliesCount, nullptr);
-		// 		if (queueFamiliesCount == 0)
-		// 		{
-		// 			std::cout << "Physical device " << physicalDevice << " doesn't have any queue families" << std::endl;
-		// 			return false;
-		// 		}
-		// 
-		// 		std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamiliesCount);
-		// 		std::vector<VkBool32> queuePresentSupport(queueFamiliesCount);
-		// 
-		// 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamiliesCount, queueFamilyProperties.data());
-		// 
-		// 		uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
-		// 		uint32_t presentQueueFamilyIndex = UINT32_MAX;
-		// 
-		// 		for (uint32_t i = 0; i < queueFamiliesCount; ++i)
-		// 		{
-		// 			//vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, Vulkan.PresentationSurface, &queuePresentSupport[i]);
-		// 
-		// 			if ((queueFamilyProperties[i].queueCount > 0) && (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
-		// 			{
-		// 				//Select first queue that support graphics
-		// 				if (graphicsQueueFamilyIndex == UINT32_MAX)
-		// 					graphicsQueueFamilyIndex = i;
-		// 
-		// 				//If there is queue that supports both graphics and present, prefer it
-		// 				if (queuePresentSupport[i])
-		// 				{
-		// 					selectedGraphicsQueueFamilyIndex = i;
-		// 					selectedPresentQueueFamilyIndex = i;
-		// 					return true;
-		// 				}
-		// 			}
-		// 		}
-		// 
-		// 		//We don't have queue that supports both graphics and present so we have to use separate queues
-		// 		for (uint32_t i = 0; i < queueFamiliesCount; ++i)
-		// 		{
-		// 			if (queuePresentSupport[i])
-		// 			{
-		// 				presentQueueFamilyIndex = i;
-		// 				break;
-		// 			}
-		// 		}
-		// 
-		// 		//If this device doesn't support queues with graphics and present capabilites don't use it
-		// 		if ((graphicsQueueFamilyIndex == UINT32_MAX) || (presentQueueFamilyIndex == UINT32_MAX))
-		// 		{
-		// 			std::cout << "Could not find queue families with required properties on physical device " << physicalDevice << std::endl;
-		// 			return false;
-		// 		}
-		// 
-		// 		selectedGraphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
-		// 		selectedPresentQueueFamilyIndex = presentQueueFamilyIndex;
-		// 		return true;
-
 		uint32_t extensions_count = 0;
 		if ((vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensions_count, nullptr) != VK_SUCCESS) ||
 			(extensions_count == 0)) {
@@ -744,87 +646,87 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CopyVertexData()
 	{
-
+		/*
 		//Prepare data in the staging buffer
-		//std::vector<float>& vertexData = Vulkan.Model.vertices;//GetVertexData();
+		std::vector<float>& vertexData = Vulkan.Model.vertices;//GetVertexData();
 
-		//void* stagingBufferMemoryPointer;
-		//if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.Model.VertexBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
-		//{
-		//	std::cout << "Could not map memory an upload data to a staging buffer" << std::endl;
-		//	return false;
-		//}
+		void* stagingBufferMemoryPointer;
+		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.Model.VertexBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
+		{
+			std::cout << "Could not map memory an upload data to a staging buffer" << std::endl;
+			return false;
+		}
 
-		//memcpy(stagingBufferMemoryPointer, Vulkan.Model.vertices.data(), Vulkan.Model.VertexBuffer.Size);
+		memcpy(stagingBufferMemoryPointer, Vulkan.Model.vertices.data(), Vulkan.Model.VertexBuffer.Size);
 
-		//VkMappedMemoryRange flushRange =
-		//{
-		//	VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-		//	nullptr,
-		//	Vulkan.StagingBuffer.Memory,
-		//	0,
-		//	Vulkan.Model.VertexBuffer.Size
-		//};
-		//vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
+		VkMappedMemoryRange flushRange =
+		{
+			VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+			nullptr,
+			Vulkan.StagingBuffer.Memory,
+			0,
+			Vulkan.Model.VertexBuffer.Size
+		};
+		vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
 
-		//vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
 
-		////Prepare command buffer to copy data from the staging buffer to the vertex buffer
-		//VkCommandBufferBeginInfo cmdBufferBeginInfo =
-		//{
-		//	VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		//	nullptr,
-		//	VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-		//	nullptr
-		//};
+		//Prepare command buffer to copy data from the staging buffer to the vertex buffer
+		VkCommandBufferBeginInfo cmdBufferBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			nullptr,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			nullptr
+		};
 
-		//VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
+		VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
 
-		//vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
 
-		//VkBufferCopy bufferCopyInfo =
-		//{
-		//	0,
-		//	0,
-		//	Vulkan.Model.VertexBuffer.Size
-		//};
-		//vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.Model.VertexBuffer.Handle, 1, &bufferCopyInfo);
+		VkBufferCopy bufferCopyInfo =
+		{
+			0,
+			0,
+			Vulkan.Model.VertexBuffer.Size
+		};
+		vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.Model.VertexBuffer.Handle, 1, &bufferCopyInfo);
 
-		//VkBufferMemoryBarrier bufferMemoryBarrier =
-		//{
-		//	VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-		//	nullptr,
-		//	VK_ACCESS_MEMORY_WRITE_BIT,
-		//	VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
-		//	VK_QUEUE_FAMILY_IGNORED,
-		//	VK_QUEUE_FAMILY_IGNORED,
-		//	Vulkan.Model.VertexBuffer.Handle,
-		//	0,
-		//	VK_WHOLE_SIZE
-		//};
-		//vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
+		VkBufferMemoryBarrier bufferMemoryBarrier =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			nullptr,
+			VK_ACCESS_MEMORY_WRITE_BIT,
+			VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			Vulkan.Model.VertexBuffer.Handle,
+			0,
+			VK_WHOLE_SIZE
+		};
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
 
-		//vkEndCommandBuffer(cmdBuffer);
+		vkEndCommandBuffer(cmdBuffer);
 
-		////Submit cmd buffer and copy data from the staging buffer to the vertex buffer
-		//VkSubmitInfo submitInfo =
-		//{
-		//	VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		//	nullptr,
-		//	0,
-		//	nullptr,
-		//	nullptr,
-		//	1,
-		//	&cmdBuffer,
-		//	0,
-		//	nullptr
-		//};
+		//Submit cmd buffer and copy data from the staging buffer to the vertex buffer
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			0,
+			nullptr,
+			nullptr,
+			1,
+			&cmdBuffer,
+			0,
+			nullptr
+		};
 
-		//if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE))
-		//	return false;
+		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE))
+			return false;
 
-		//vkDeviceWaitIdle(Vulkan.Device);
-
+		vkDeviceWaitIdle(Vulkan.Device);
+		*/
 		return true;
 
 
@@ -832,85 +734,87 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CopyUniformBufferData()
 	{
-		//const std::array<float, 16> uniformData = GetUniformBufferData();
+		/*
+		const std::array<float, 16> uniformData = GetUniformBufferData();
 
-		//void* stagingBufferMemoryPointer;
-		//if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.UniformBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
-		//{
-		//	std::cout << "Could not map memory and upload data to a staging buffer" << std::endl;
-		//	return false;
-		//}
+		void* stagingBufferMemoryPointer;
+		if (vkMapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory, 0, Vulkan.UniformBuffer.Size, 0, &stagingBufferMemoryPointer) != VK_SUCCESS)
+		{
+			std::cout << "Could not map memory and upload data to a staging buffer" << std::endl;
+			return false;
+		}
 
-		//memcpy(stagingBufferMemoryPointer, uniformData.data(), Vulkan.UniformBuffer.Size);
+		memcpy(stagingBufferMemoryPointer, uniformData.data(), Vulkan.UniformBuffer.Size);
 
-		//VkMappedMemoryRange flushRange =
-		//{
-		//	VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-		//	nullptr,
-		//	Vulkan.StagingBuffer.Memory,
-		//	0,
-		//	Vulkan.UniformBuffer.Size
-		//};
+		VkMappedMemoryRange flushRange =
+		{
+			VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+			nullptr,
+			Vulkan.StagingBuffer.Memory,
+			0,
+			Vulkan.UniformBuffer.Size
+		};
 
-		//vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
+		vkFlushMappedMemoryRanges(Vulkan.Device, 1, &flushRange);
 
-		//vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
+		vkUnmapMemory(Vulkan.Device, Vulkan.StagingBuffer.Memory);
 
-		////Prepare cmd buffer to copy data from the staging buffer to the uniform buffer
-		//VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
+		//Prepare cmd buffer to copy data from the staging buffer to the uniform buffer
+		VkCommandBuffer cmdBuffer = Vulkan.RenderingResources[0].CommandBuffer;
 
-		//VkCommandBufferBeginInfo cmdBufferBeginInfo =
-		//{
-		//	VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		//	nullptr,
-		//	VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-		//	nullptr
-		//};
+		VkCommandBufferBeginInfo cmdBufferBeginInfo =
+		{
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			nullptr,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			nullptr
+		};
 
-		//vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
+		vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
 
-		//VkBufferCopy bufferCopyInfo =
-		//{
-		//	0,
-		//	0,
-		//	Vulkan.UniformBuffer.Size
-		//};
-		//vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.UniformBuffer.Handle, 1, &bufferCopyInfo);
+		VkBufferCopy bufferCopyInfo =
+		{
+			0,
+			0,
+			Vulkan.UniformBuffer.Size
+		};
+		vkCmdCopyBuffer(cmdBuffer, Vulkan.StagingBuffer.Handle, Vulkan.UniformBuffer.Handle, 1, &bufferCopyInfo);
 
-		//VkBufferMemoryBarrier bufferMemoryBarrier =
-		//{
-		//	VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-		//	nullptr,
-		//	VK_ACCESS_TRANSFER_WRITE_BIT,
-		//	VK_ACCESS_UNIFORM_READ_BIT,
-		//	VK_QUEUE_FAMILY_IGNORED,
-		//	VK_QUEUE_FAMILY_IGNORED,
-		//	Vulkan.UniformBuffer.Handle,
-		//	0,
-		//	VK_WHOLE_SIZE
-		//};
-		//vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
+		VkBufferMemoryBarrier bufferMemoryBarrier =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			nullptr,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_ACCESS_UNIFORM_READ_BIT,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			Vulkan.UniformBuffer.Handle,
+			0,
+			VK_WHOLE_SIZE
+		};
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, 1, &bufferMemoryBarrier, 0, nullptr);
 
-		//vkEndCommandBuffer(cmdBuffer);
+		vkEndCommandBuffer(cmdBuffer);
 
-		////Submit the cmd buffer and copy data from the staging buffer to the vertex buffer
-		//VkSubmitInfo submitInfo =
-		//{
-		//	VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		//	nullptr,
-		//	0,
-		//	nullptr,
-		//	nullptr,
-		//	1,
-		//	&cmdBuffer,
-		//	0,
-		//	nullptr
-		//};
+		//Submit the cmd buffer and copy data from the staging buffer to the vertex buffer
+		VkSubmitInfo submitInfo =
+		{
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			nullptr,
+			0,
+			nullptr,
+			nullptr,
+			1,
+			&cmdBuffer,
+			0,
+			nullptr
+		};
 
-		//if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
-		//	return false;
+		if (vkQueueSubmit(Vulkan.GraphicsQueue.Handle, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+			return false;
 
-		//vkDeviceWaitIdle(Vulkan.Device);
+		vkDeviceWaitIdle(Vulkan.Device);
+		*/
 		return true;
 
 	}

@@ -109,37 +109,6 @@ namespace StrikeEngine
 
 	void Matrix4X4::Inverse()
 	{
-		/*int a, i, j;
-		Matrix4X4 out;
-		Vector4f v, vec[3];
-		float det = 0.0f;
-
-		det = this->GetDeterminant();
-		if (!det) return;
-		for (i = 0; i < 4; i++)
-		{
-			for (j = 0; j < 4; j++)
-			{
-				if (j != 1)
-				{
-					a = j;
-					if (j > i) a = a - 1;
-					vec[a].x = (this->m_mat[j][0]);
-					vec[a].y = (this->m_mat[j][1]);
-					vec[a].z = (this->m_mat[j][2]);
-					vec[a].w = (this->m_mat[j][3]);
-				}
-			}
-
-			v.cross(vec[0], vec[1], vec[2]);
-
-			out.m_mat[0][i] = pow(-1.0f, i) * v.x / det;
-			out.m_mat[1][i] = pow(-1.0f, i) * v.y / det;
-			out.m_mat[2][i] = pow(-1.0f, i) * v.z / det;
-			out.m_mat[3][i] = pow(-1.0f, i) * v.w / det;
-		}
-
-		this->SetMatrix(out);*/
 		double Result[4][4];
 		double tmp[12]; /* temp array for pairs */
 		double src[16]; /* array of transpose source matrix */

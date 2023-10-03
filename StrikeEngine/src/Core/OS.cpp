@@ -172,11 +172,6 @@ namespace StrikeEngine
 		LPCSTR    lpszClassName;
 		*/
 
-		/*
-		wc.lpfnWndProc = &WindowProc;
-		wc.hInstance = hInstance;
-		wc.lpszClassName = CLASS_NAME;
-		*/
 		wc.hInstance = m_params.Instance;
 		wc.lpszClassName = ENGINE_NAME;
 		wc.lpfnWndProc = WindowProc;
