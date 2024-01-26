@@ -1020,8 +1020,8 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::CreatePipeline()
 	{
-		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> vertexShaderModule = CreateShaderModule("C:/Users/Charlelie/Desktop/Engines/StrikeEngine/StrikeEngine/Data/vert.spv");
-		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> fragmentShaderModule = CreateShaderModule("C:/Users/Charlelie/Desktop/Engines/StrikeEngine/StrikeEngine/Data/frag.spv");
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> vertexShaderModule = CreateShaderModule("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/vert.spv");
+		Tools::AutoDeleter<VkShaderModule, PFN_vkDestroyShaderModule> fragmentShaderModule = CreateShaderModule("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/frag.spv");
 
 		if (!vertexShaderModule || !fragmentShaderModule)
 			return false;

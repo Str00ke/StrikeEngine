@@ -24,15 +24,16 @@ int main() {
 	}
 
 	StrikeEngine::Model model;
-	model.GetMesh().SetPath("C:/Users/Charlelie/Desktop/Engines/StrikeEngine/StrikeEngine/Data/viking_room.obj");
-	model.GetTexture().SetPath("C:/Users/Charlelie/Desktop/Engines/StrikeEngine/StrikeEngine/Data/viking_room.png");
-
-	StrikeEngine::Model model2;
-	model2.GetMesh().SetPath("C:/Users/Charlelie/Desktop/Engines/StrikeEngine/StrikeEngine/Data/Gear2.obj");
-	model2.GetTexture().SetPath("C:/Users/Charlelie/Desktop/Engines/StrikeEngine/StrikeEngine/Data/Gear_2_BaseColor.png");
-
+	model.GetMesh().SetPath("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/viking_room.obj");
+	//model.GetTexture().SetPath("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/viking_room.png");
+	model.GetMesh().SetVertexColor(Vector3f(1.0f, 0.0f, 0.0f));
 	StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&model);
-	StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&model2);
+
+	/*StrikeEngine::Model model2;
+	model2.GetMesh().SetPath("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/Gear2.obj");
+	model2.GetTexture().SetPath("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/Gear_2_BaseColor.png");
+
+	StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&model2);*/
 
 
 	input.AddBinding(StrikeEngine::KeyCode::Z, StrikeEngine::KeyStateType::ON_DOWN, [&] { cam.m_forward += 0.25f; });

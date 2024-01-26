@@ -14,11 +14,10 @@ namespace StrikeEngine
 		static float GetCurrTime();
 		static const float DeltaTime();
 	private:
-		inline static std::chrono::steady_clock::time_point m_startTime = {};
-		inline static float m_currTime = 0.0f;
-		inline static float m_prevTime = 0.0f;
+		inline static std::chrono::steady_clock::time_point m_startTime; //TODO: inline static only compiles on >= c++17
+		inline static float m_currTime;
+		inline static float m_prevTime;
 		inline static float m_deltaTime;
 	};
-
 }
 

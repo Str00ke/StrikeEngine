@@ -3,6 +3,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../Externals/tiny_obj_loader.h"
 #include "Model/Vertex.hpp"
+#include <unordered_map>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
@@ -46,6 +47,11 @@ namespace StrikeEngine
 		return m_indicesBuffer;
 	}
 
+	void Mesh::SetVertexColor(const Vector3f& color)
+	{
+		m_vertexColor = color;
+	}
+
 	bool Mesh::LoadOBJFile()
 	{
 		tinyobj::attrib_t attrib;
@@ -73,7 +79,7 @@ namespace StrikeEngine
 					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 				};
 
-				vData.color = { 1.0f, 1.0f, 1.0f };
+				vData.color = { m_vertexColor.x, m_vertexColor.y, m_vertexColor.z };
 				m_vertexBuffer.m_Buffer.push_back(vData);
 				if (uniqueVertices.count(vData) == 0)
 				{

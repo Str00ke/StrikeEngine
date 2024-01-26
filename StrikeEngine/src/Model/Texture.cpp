@@ -309,11 +309,22 @@ namespace StrikeEngine
 
 		if (!AllocateDescriptorSet()) return false;
 
-
 		int width = 0, height = 0, dataSize = 0;
-		std::vector textureData = Tools::GetImageData(GetPath().c_str(), 4, &width, &height, nullptr, &dataSize);
-		if (textureData.size() == 0)
-			return false;
+		std::vector<char> textureData;
+		if (GetPath() == "") //If no textures are set
+		{
+			width = 1024;
+			height = 1024;
+			dataSize = width * height * 4;
+			textureData.assign(dataSize, -110); //TODO: don't put hardcoded values like that pls
+		}
+		else
+		{
+			textureData = Tools::GetImageData(GetPath().c_str(), 4, &width, &height, nullptr, &dataSize);
+			if (textureData.size() == 0)
+				return false;
+		}
+
 
 
 		VkDeviceSize bufferSize = width * height * 4;

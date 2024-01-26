@@ -27,6 +27,7 @@ namespace StrikeEngine
 		bool Create(StrikeRenderer* renderer);
 		MeshBuffer<Vertex> GetVertexBuffer();
 		MeshBuffer<uint32_t> GetIndexBuffer();
+		void SetVertexColor(const Vector3f& color);
 
 	private:
 		bool LoadOBJFile();
@@ -35,6 +36,7 @@ namespace StrikeEngine
 
 		MeshBuffer<Vertex> m_vertexBuffer;
 		MeshBuffer<uint32_t> m_indicesBuffer;
+		Vector3f m_vertexColor = Vector3f(1.0f, 1.0f, 1.0f);
 
 		/*std::vector<VertexData> m_vertices;
 		BufferParameters m_vertexBuffer;

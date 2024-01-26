@@ -23,9 +23,8 @@ namespace StrikeEngine
 		if (!m_depth.CreateDepthTexture(StrikeRenderer::Instance()))
 			return false;
 		//--------------------------------------------------------------------------
-		if(m_tex.GetPath() != "NULL")
-			if (!m_tex.Create(StrikeRenderer::Instance(), this))
-				return false;
+		if(!m_tex.Create(StrikeRenderer::Instance(), this))
+			return false;
 
 		if (!m_mesh.Create(StrikeRenderer::Instance()))
 			return false;
