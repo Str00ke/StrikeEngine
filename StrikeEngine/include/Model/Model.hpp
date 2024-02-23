@@ -5,29 +5,30 @@
 #include "Renderer/StrikeRenderer.hpp"
 #include "Model/UniformBufferObject.hpp"
 #include "Math/Vector3.hpp"
-
+#include "Core/StrikeObject.hpp"
+#include "Math/Transform.hpp"
 
 namespace StrikeEngine
 {
 	
 
-	class Model : public Renderable
+	class Model : public Renderable, StrikeObject
 	{
 	public:
 		Model()
 		{}
 
 		Mesh& GetMesh();
+		void SetMesh(const Mesh& mesh);
 		Texture& GetTexture();
 		Texture& GetDepthTexture();
 		BufferParameters& GetUniformBuffer();
 
-		virtual bool Create();
+		bool Create();
 
 		bool UpdateUniformBuffer();
 
-		float testAngle;
-		Vector3f pos{1.0f, 1.0f , 1.0f};
+		Transform transform;
 
 	private:
 		Mesh m_mesh;

@@ -316,7 +316,7 @@ namespace StrikeEngine
 			width = 1024;
 			height = 1024;
 			dataSize = width * height * 4;
-			textureData.assign(dataSize, -110); //TODO: don't put hardcoded values like that pls
+			textureData.assign(dataSize, -1); //TODO: don't put hardcoded values like that pls
 		}
 		else
 		{

@@ -9,6 +9,11 @@ namespace StrikeEngine
 		return m_mesh;
 	}
 
+	void Model::SetMesh(const Mesh& mesh)
+	{
+		m_mesh = mesh;
+	}
+
 	Texture& Model::GetTexture()
 	{
 		return m_tex;
@@ -43,9 +48,10 @@ namespace StrikeEngine
 		ubo.proj[1][1] *= -1;*/
 
 		ubo.model.Identity();
-		ubo.model.m_mat[3][0] = pos.x;
-		ubo.model.m_mat[3][1] = pos.y;
-		ubo.model.m_mat[3][2] = pos.z;
+		ubo.model.m_mat[3][0] = transform.m_position.x;
+		ubo.model.m_mat[3][1] = transform.m_position.y;
+		ubo.model.m_mat[3][2] = transform.m_position.z;
+		//TODO: Add rot and scale
 		ubo.view = Camera::Instance()->m_viewCam;
 		ubo.proj = Camera::Instance()->m_projCam;
 		auto camVec = Camera::Instance()->m_worldCam.GetTranslation();
@@ -59,11 +65,11 @@ namespace StrikeEngine
 	bool Model::CreateUniformBuffer()
 	{
 		UniformBuffer.Size = sizeof(UniformBufferObject);
-		/*if (!CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, Vulkan.UniformBuffer))
+		if (!StrikeRenderer::Instance()->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, UniformBuffer))
 		{
 			std::cout << "Could not create uniform buffer" << std::endl;
 			return false;
-		}*/
+		}
 		if (!StrikeRenderer::Instance()->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, UniformBuffer))
 		{
 			std::cout << "Could not create uniform buffer" << std::endl;

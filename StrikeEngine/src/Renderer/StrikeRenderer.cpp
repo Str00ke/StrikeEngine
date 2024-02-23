@@ -576,7 +576,7 @@ namespace StrikeEngine
 		return CreateSwapChainImageViews();
 	}
 
-	bool StrikeRenderer::CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView)
+	bool StrikeRenderer::CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView, Model* model)
 	{
 		if (frameBuffer != VK_NULL_HANDLE)
 			vkDestroyFramebuffer(Vulkan.Device, frameBuffer, nullptr);
@@ -584,7 +584,7 @@ namespace StrikeEngine
 		std::array<VkImageView, 2> attachments =
 		{
 			imageView,
-			toRend[0]->GetDepthTexture().GetImgParams().View
+			model->GetDepthTexture().GetImgParams().View
 		};
 
 		VkFramebufferCreateInfo frameBufferCreateInfo =
@@ -879,8 +879,6 @@ namespace StrikeEngine
 		return true;
 	}
 
-
-
 	bool StrikeRenderer::CreateRenderPass()
 	{
 		VkAttachmentDescription colorAttachment =
@@ -996,7 +994,7 @@ namespace StrikeEngine
 		return true;
 	}
 
-	bool StrikeRenderer::CreatePipelineLayout()
+	bool StrikeRenderer::CreatePipelineLayout(Model* model)
 	{
 		VkPipelineLayoutCreateInfo layoutCreateInfo =
 		{
@@ -1004,7 +1002,7 @@ namespace StrikeEngine
 			nullptr,
 			0,
 			1,
-			&toRend[0]->GetTexture().GetDescParams().Layout,
+			&model->GetTexture().GetDescParams().Layout,
 			0,
 			nullptr
 		};
@@ -1212,7 +1210,6 @@ namespace StrikeEngine
 
 		return true;
 	}
-
 	
 	bool StrikeRenderer::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryProperty, BufferParameters& buffer)
 	{
@@ -1692,9 +1689,9 @@ namespace StrikeEngine
 		for (size_t i = 0; i < toRend.size(); ++i)
 		{
 			if (!toRend[i]->Create()) return false;
+			if (!CreatePipelineLayout(toRend[i])) return false;
 		}
 
-		if (!CreatePipelineLayout()) return false;
 
 		if (!CreatePipeline()) return false;
 		
@@ -1797,8 +1794,12 @@ namespace StrikeEngine
 
 	bool StrikeRenderer::PrepareFrame(VkCommandBuffer cmdBuffer, const ImageParameters& imgParams, VkFramebuffer& frameBuffer)
 	{
-		if (!CreateFrameBuffers(frameBuffer, imgParams.View))
-			return false;
+		for (size_t i = 0; i < toRend.size(); ++i)
+		{
+			if (!CreateFrameBuffers(frameBuffer, imgParams.View, toRend[i]))
+				return false;
+		}
+		
 
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1886,7 +1887,7 @@ namespace StrikeEngine
 				vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &buf, &offset);
 
 				vkCmdBindIndexBuffer(cmdBuffer, toRend[i]->GetMesh().GetIndexBuffer().m_Handle.Handle, 0, VK_INDEX_TYPE_UINT32);
-
+				auto test = toRend[i]->GetTexture();
 				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Vulkan.PipelineLayout, 0, 1, &toRend[i]->GetTexture().GetDescParams().Handle, 0, nullptr);
 				//vkCmdDraw(cmdBuffer, 4, 1, 0, 0);
 				vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(toRend[i]->GetMesh().GetIndexBuffer().m_Buffer.size()), 1, 0, 0, 0);
@@ -1989,17 +1990,21 @@ namespace StrikeEngine
 				Vulkan.RenderPass = VK_NULL_HANDLE;
 			}
 
-			if (toRend[0]->GetTexture().GetDescParams().Pool != VK_NULL_HANDLE)
+			for (size_t i = 0; i < toRend.size(); ++i)
 			{
-				vkDestroyDescriptorPool(Vulkan.Device, toRend[0]->GetTexture().GetDescParams().Pool, nullptr);
-				toRend[0]->GetTexture().GetDescParams().Pool = VK_NULL_HANDLE;
-			}
+				if (toRend[i]->GetTexture().GetDescParams().Pool != VK_NULL_HANDLE)
+				{
+					vkDestroyDescriptorPool(Vulkan.Device, toRend[i]->GetTexture().GetDescParams().Pool, nullptr);
+					toRend[i]->GetTexture().GetDescParams().Pool = VK_NULL_HANDLE;
+				}
 
-			if (toRend[0]->GetTexture().GetDescParams().Layout != VK_NULL_HANDLE)
-			{
-				vkDestroyDescriptorSetLayout(Vulkan.Device, toRend[0]->GetTexture().GetDescParams().Layout, nullptr);
-				toRend[0]->GetTexture().GetDescParams().Layout = VK_NULL_HANDLE;
+				if (toRend[i]->GetTexture().GetDescParams().Layout != VK_NULL_HANDLE)
+				{
+					vkDestroyDescriptorSetLayout(Vulkan.Device, toRend[i]->GetTexture().GetDescParams().Layout, nullptr);
+					toRend[i]->GetTexture().GetDescParams().Layout = VK_NULL_HANDLE;
+				}
 			}
+			
 
 			//if (model->GetTexture().GetParams().Sampler != VK_NULL_HANDLE)
 			//{

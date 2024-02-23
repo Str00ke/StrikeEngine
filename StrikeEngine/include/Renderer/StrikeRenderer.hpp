@@ -170,12 +170,12 @@ namespace StrikeEngine
 
 		bool CreateSemaphore();
 		bool CreateRenderPass();
-		bool CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView);
+		bool CreateFrameBuffers(VkFramebuffer& frameBuffer, VkImageView imageView, Model* model);
 		bool CreatePipeline();
 		bool CreateStagingBuffer();
 		bool CopyVertexData();
 		bool CreateRenderingResources();
-		bool CreatePipelineLayout();
+		bool CreatePipelineLayout(Model* model);
 		bool CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryProperty, BufferParameters& buffer);
 		bool CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 		VkCommandBuffer BeginSingleTimeCommands();

@@ -27,13 +27,15 @@ namespace StrikeEngine
 {
 	bool Mesh::Create(StrikeRenderer* renderer)
 	{
+		m_renderer = renderer;
+
 		if (!LoadOBJFile())
 			return false;
 
-		if (!CreateVertexBuffer(renderer))
+		if (!CreateVertexBuffer(m_renderer))
 			return false;
 
-		if (!CreateIndexBuffer(renderer))
+		if (!CreateIndexBuffer(m_renderer))
 			return false;
 	}
 
@@ -52,8 +54,20 @@ namespace StrikeEngine
 		m_vertexColor = color;
 	}
 
+	void Mesh::SetIndexBuffer(const std::vector<uint32_t>& indices)
+	{
+		m_indicesBuffer.m_Buffer = indices;
+	}
+
+	void Mesh::SetVertexBuffer(const std::vector<Vertex>& vertices)
+	{
+		m_vertexBuffer.m_Buffer = vertices;
+	}
+
 	bool Mesh::LoadOBJFile()
 	{
+		if (GetPath() == "") //TODO: when create primitive types, no path set, but throw when no path but no primitive
+			return true;
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;

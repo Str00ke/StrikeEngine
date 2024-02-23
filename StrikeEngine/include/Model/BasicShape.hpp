@@ -13,8 +13,6 @@ namespace StrikeEngine
 			CONE,
 			CYLINDER
 		};
-
-		bool Create() override;
 	};
 }
 
