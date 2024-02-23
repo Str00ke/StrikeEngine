@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <array>
-#include "vulkan.h"
+
 
 namespace StrikeEngine 
 {
@@ -14,23 +14,23 @@ namespace StrikeEngine
 		class AutoDeleter {
 		public:
 			AutoDeleter() :
-				Object(VK_NULL_HANDLE),
+				Object(/*VK_NULL_HANDLE*/0),
 				Deleter(nullptr),
-				Device(VK_NULL_HANDLE) {
+				Device(/*VK_NULL_HANDLE*/0) {
 			}
 
-			AutoDeleter(T object, F deleter, VkDevice device) :
+			/*AutoDeleter(T object, F deleter, VkDevice device) :
 				Object(object),
 				Deleter(deleter),
 				Device(device) {
-			}
+			}*/
 
 			AutoDeleter(AutoDeleter&& other) {
 				*this = std::move(other);
 			}
 
 			~AutoDeleter() {
-				if ((Object != VK_NULL_HANDLE) && (Deleter != nullptr) && (Device != VK_NULL_HANDLE)) {
+				if ((Object != /*VK_NULL_HANDLE*/0) && (Deleter != nullptr) && (Device != /*VK_NULL_HANDLE*/0)) {
 					Deleter(Device, Object, nullptr);
 				}
 			}
@@ -39,8 +39,8 @@ namespace StrikeEngine
 				if (this != &other) {
 					Object = other.Object;
 					Deleter = other.Deleter;
-					Device = other.Device;
-					other.Object = VK_NULL_HANDLE;
+					//Device = other.Device;
+					other.Object = /*VK_NULL_HANDLE*/0;
 				}
 				return *this;
 			}
@@ -50,7 +50,7 @@ namespace StrikeEngine
 			}
 
 			bool operator !() const {
-				return Object == VK_NULL_HANDLE;
+				return Object == /*VK_NULL_HANDLE*/0;
 			}
 
 		private:
@@ -58,7 +58,7 @@ namespace StrikeEngine
 			AutoDeleter& operator=(const AutoDeleter&);
 			T         Object;
 			F         Deleter;
-			VkDevice  Device;
+			//VkDevice  Device;
 		};
 
 		std::vector<char> GetBinaryFileContents(const std::string& filename);

@@ -95,9 +95,9 @@ bool StrikeEngine::PrimitiveShape_Cube::Init(StrikeRenderer* renderer, const Cub
 	};
 
 	//std::vector<Vertex> _vBuffer(data, data + (sizeof(data) * 24));
-	SetVertexBuffer(data);
+	//SetVertexBuffer(data);
 
 	//std::vector<uint32_t> _indices(indices, indices + (sizeof(indices) * 36));
-	SetIndexBuffer(indices);
+	//SetIndexBuffer(indices);
 	return false;
 }

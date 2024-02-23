@@ -50,8 +50,8 @@ namespace StrikeEngine
 		worldCam.Inverse();
 		m_viewCam = worldCam;
 
-		auto& vk = StrikeRenderer::Instance()->GetVulkanParameters();
-		m_projCam.SetPerspectiveProjectionMatrix(vk.SwapChain.Extent.width / (float)vk.SwapChain.Extent.height, m_fov, m_nearClip, m_farClip);
+		//auto& vk = StrikeRenderer::Instance()->GetVulkanParameters();
+		//m_projCam.SetPerspectiveProjectionMatrix(vk.SwapChain.Extent.width / (float)vk.SwapChain.Extent.height, m_fov, m_nearClip, m_farClip);
 	}
 
 	float Camera::GetFOV() const

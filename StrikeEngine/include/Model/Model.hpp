@@ -22,7 +22,7 @@ namespace StrikeEngine
 		void SetMesh(const Mesh& mesh);
 		Texture& GetTexture();
 		Texture& GetDepthTexture();
-		BufferParameters& GetUniformBuffer();
+		//BufferParameters& GetUniformBuffer();
 
 		bool Create();
 
@@ -35,7 +35,7 @@ namespace StrikeEngine
 		Texture m_tex;
 		Texture m_depth;
 
-		BufferParameters UniformBuffer;
+		//BufferParameters UniformBuffer;
 		void* UniformBufferMapped;
 
 		bool CreateUniformBuffer();

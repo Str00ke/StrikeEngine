@@ -13,7 +13,7 @@ int main() {
 
 	StrikeEngine::StrikeApp app;
 	StrikeEngine::StrikeWindow window;
-	StrikeEngine::StrikeRenderer rend(&window);
+	//StrikeEngine::StrikeRenderer rend(&window);
 	StrikeEngine::Time::Init();
 	StrikeEngine::InputSystem input;
 	StrikeEngine::Camera cam;
@@ -28,7 +28,7 @@ int main() {
 	model.GetMesh().SetPath("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/viking_room.obj");
 	model.GetTexture().SetPath("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/viking_room.png");
 	model.GetMesh().SetVertexColor(Vector3f(1.0f, 1.0f, 1.0f));
-	StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&model);
+	//StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&model);
 
 	/*StrikeEngine::Model model2;
 	model2.GetMesh().SetPath("C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/Data/Gear2.obj");
@@ -40,10 +40,10 @@ int main() {
 	StrikeEngine::Cube_Params params{ 1.0f, {0.0f, 0.0f, 0.0f} };
 	//shape.Init<StrikeEngine::PrimitiveShape_Cube>(rend, params);
 	//shape.Init(StrikeEngine::PrimitiveShape_Cube, rend, params);
-	cube.Init(&rend, params);
+	//cube.Init(&rend, params);
 	StrikeEngine::Model modelPrim;
 	modelPrim.SetMesh(cube);
-	StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&modelPrim);
+	//StrikeEngine::StrikeRenderer::Instance()->toRend.push_back(&modelPrim);
 
 
 	input.AddBinding(StrikeEngine::KeyCode::Z, StrikeEngine::KeyStateType::ON_DOWN, [&] { cam.m_forward += 0.25f; });
@@ -88,15 +88,9 @@ int main() {
 			prevPos = pos;
 		});
 
-
-	if (!rend.InitVulkan())
+	/*if (!window.RenderingLoop(rend))
 	{
 		return -1;
-	}
-
-	if (!window.RenderingLoop(rend))
-	{
-		return -1;
-	}
+	}*/
 	return 0;
 };

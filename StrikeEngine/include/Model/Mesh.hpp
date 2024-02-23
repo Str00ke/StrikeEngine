@@ -6,27 +6,14 @@
 
 namespace StrikeEngine
 {
-	template<typename T>
-	struct MeshBuffer
-	{
-		std::vector<T> m_Buffer;
-		BufferParameters m_Handle;
-		VkDeviceMemory m_BufferMemory;
-
-		MeshBuffer() :
-			m_Buffer(),
-			m_Handle(),
-			m_BufferMemory(VK_NULL_HANDLE)
-		{}
-	};
 
 	class StrikeRenderer;
 	class Mesh : public Asset
 	{
 	public:
 		bool Create(StrikeRenderer* renderer);
-		MeshBuffer<Vertex> GetVertexBuffer();
-		MeshBuffer<uint32_t> GetIndexBuffer();
+		/*MeshBuffer<Vertex> GetVertexBuffer();
+		MeshBuffer<uint32_t> GetIndexBuffer();*/
 		void SetVertexColor(const Vector3f& color);
 		void SetVertexBuffer(const std::vector<Vertex>& vertices);
 		void SetIndexBuffer(const std::vector<uint32_t>& indices);
@@ -37,8 +24,8 @@ namespace StrikeEngine
 		bool CreateVertexBuffer(StrikeRenderer* renderer);
 		bool CreateIndexBuffer(StrikeRenderer* renderer);
 
-		MeshBuffer<Vertex> m_vertexBuffer;
-		MeshBuffer<uint32_t> m_indicesBuffer;
+		/*MeshBuffer<Vertex> m_vertexBuffer;
+		MeshBuffer<uint32_t> m_indicesBuffer;*/
 		Vector3f m_vertexColor = Vector3f(1.0f, 1.0f, 1.0f);
 
 		StrikeRenderer* m_renderer;

@@ -64,7 +64,7 @@ namespace StrikeEngine
 
 	bool Model::CreateUniformBuffer()
 	{
-		UniformBuffer.Size = sizeof(UniformBufferObject);
+		/*UniformBuffer.Size = sizeof(UniformBufferObject);
 		if (!StrikeRenderer::Instance()->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, UniformBuffer))
 		{
 			std::cout << "Could not create uniform buffer" << std::endl;
@@ -81,7 +81,7 @@ namespace StrikeEngine
 		{
 			std::cout << "Could not map memory and upload data to a staging buffer" << std::endl;
 			return false;
-		}
+		}*/
 
 		return true;
 	}
@@ -91,10 +91,10 @@ namespace StrikeEngine
 		return m_depth;
 	}
 
-	BufferParameters& Model::GetUniformBuffer()
+	/*BufferParameters& Model::GetUniformBuffer()
 	{
 		return UniformBuffer;
-	}
+	}*/
 
 }
 

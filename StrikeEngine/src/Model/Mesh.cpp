@@ -39,7 +39,7 @@ namespace StrikeEngine
 			return false;
 	}
 
-	MeshBuffer<StrikeEngine::Vertex> StrikeEngine::Mesh::GetVertexBuffer()
+	/*MeshBuffer<StrikeEngine::Vertex> StrikeEngine::Mesh::GetVertexBuffer()
 	{
 		return m_vertexBuffer;
 	}
@@ -47,14 +47,14 @@ namespace StrikeEngine
 	MeshBuffer<uint32_t> StrikeEngine::Mesh::GetIndexBuffer()
 	{
 		return m_indicesBuffer;
-	}
+	}*/
 
 	void Mesh::SetVertexColor(const Vector3f& color)
 	{
 		m_vertexColor = color;
 	}
 
-	void Mesh::SetIndexBuffer(const std::vector<uint32_t>& indices)
+	/*void Mesh::SetIndexBuffer(const std::vector<uint32_t>& indices)
 	{
 		m_indicesBuffer.m_Buffer = indices;
 	}
@@ -62,7 +62,7 @@ namespace StrikeEngine
 	void Mesh::SetVertexBuffer(const std::vector<Vertex>& vertices)
 	{
 		m_vertexBuffer.m_Buffer = vertices;
-	}
+	}*/
 
 	bool Mesh::LoadOBJFile()
 	{
@@ -94,14 +94,14 @@ namespace StrikeEngine
 				};
 
 				vData.color = { m_vertexColor.x, m_vertexColor.y, m_vertexColor.z };
-				m_vertexBuffer.m_Buffer.push_back(vData);
+				//m_vertexBuffer.m_Buffer.push_back(vData);
 				if (uniqueVertices.count(vData) == 0)
 				{
-					uniqueVertices[vData] = static_cast<uint32_t>(m_vertexBuffer.m_Buffer.size());
-					m_vertexBuffer.m_Buffer.push_back(vData);
+					//uniqueVertices[vData] = static_cast<uint32_t>(m_vertexBuffer.m_Buffer.size());
+					//m_vertexBuffer.m_Buffer.push_back(vData);
 				}
 
-				m_indicesBuffer.m_Buffer.push_back(uniqueVertices[vData]);
+				//m_indicesBuffer.m_Buffer.push_back(uniqueVertices[vData]);
 			}
 		}
 
@@ -109,81 +109,81 @@ namespace StrikeEngine
 	}
 	bool Mesh::CreateVertexBuffer(StrikeRenderer* renderer)
 	{
-		VkDeviceSize bufferSize = sizeof(m_vertexBuffer.m_Buffer[0]) * m_vertexBuffer.m_Buffer.size();
+		//VkDeviceSize bufferSize = sizeof(m_vertexBuffer.m_Buffer[0]) * m_vertexBuffer.m_Buffer.size();
 
-		m_vertexBuffer.m_Handle.Size = static_cast<uint32_t>(sizeof(m_vertexBuffer.m_Buffer[0]) * m_vertexBuffer.m_Buffer.size());
-		renderer->GetVulkanParameters().StagingBuffer.Size = static_cast<uint32_t>(sizeof(m_vertexBuffer.m_Buffer[0]) * m_vertexBuffer.m_Buffer.size());
+		//m_vertexBuffer.m_Handle.Size = static_cast<uint32_t>(sizeof(m_vertexBuffer.m_Buffer[0]) * m_vertexBuffer.m_Buffer.size());
+		//renderer->GetVulkanParameters().StagingBuffer.Size = static_cast<uint32_t>(sizeof(m_vertexBuffer.m_Buffer[0]) * m_vertexBuffer.m_Buffer.size());
 
-		if (!renderer->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, renderer->GetVulkanParameters().StagingBuffer))
-		{
-			std::cout << "Could not create vertex buffer" << std::endl;
-			return false;
-		}
+		//if (!renderer->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, renderer->GetVulkanParameters().StagingBuffer))
+		//{
+		//	std::cout << "Could not create vertex buffer" << std::endl;
+		//	return false;
+		//}
 
-		void* data;
-		vkMapMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory, 0, bufferSize, 0, &data);
-		memcpy(data, m_vertexBuffer.m_Buffer.data(), (size_t)bufferSize);
-		vkUnmapMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory);
+		//void* data;
+		//vkMapMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory, 0, bufferSize, 0, &data);
+		//memcpy(data, m_vertexBuffer.m_Buffer.data(), (size_t)bufferSize);
+		//vkUnmapMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory);
 
-		if (!renderer->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer.m_Handle))
-		{
-			std::cout << "Could not create vertex buffer" << std::endl;
-			return false;
-		}
+		//if (!renderer->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer.m_Handle))
+		//{
+		//	std::cout << "Could not create vertex buffer" << std::endl;
+		//	return false;
+		//}
 
 
-		//copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-		VkCommandBuffer commandBuffer = renderer->BeginSingleTimeCommands();
+		////copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+		//VkCommandBuffer commandBuffer = renderer->BeginSingleTimeCommands();
 
-		VkBufferCopy copyRegion{};
-		copyRegion.size = bufferSize;
-		vkCmdCopyBuffer(commandBuffer, renderer->GetVulkanParameters().StagingBuffer.Handle, m_vertexBuffer.m_Handle.Handle, 1, &copyRegion);
+		//VkBufferCopy copyRegion{};
+		//copyRegion.size = bufferSize;
+		//vkCmdCopyBuffer(commandBuffer, renderer->GetVulkanParameters().StagingBuffer.Handle, m_vertexBuffer.m_Handle.Handle, 1, &copyRegion);
 
-		renderer->EndSingleTimeCommands(commandBuffer);
+		//renderer->EndSingleTimeCommands(commandBuffer);
 
-		vkDestroyBuffer(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Handle, nullptr);
-		vkFreeMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory, nullptr);
+		//vkDestroyBuffer(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Handle, nullptr);
+		//vkFreeMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory, nullptr);
 
 		return true;
 	}
 	bool Mesh::CreateIndexBuffer(StrikeRenderer* renderer)
 	{
-		VkDeviceSize bufferSize = sizeof(m_indicesBuffer.m_Buffer[0]) * m_indicesBuffer.m_Buffer.size();
+		//VkDeviceSize bufferSize = sizeof(m_indicesBuffer.m_Buffer[0]) * m_indicesBuffer.m_Buffer.size();
 
-		m_indicesBuffer.m_Handle.Size = static_cast<uint32_t>(sizeof(m_indicesBuffer.m_Buffer[0]) * m_indicesBuffer.m_Buffer.size());
-		renderer->GetVulkanParameters().StagingBuffer.Size = static_cast<uint32_t>(sizeof(m_indicesBuffer.m_Buffer[0]) * m_indicesBuffer.m_Buffer.size());
+		//m_indicesBuffer.m_Handle.Size = static_cast<uint32_t>(sizeof(m_indicesBuffer.m_Buffer[0]) * m_indicesBuffer.m_Buffer.size());
+		//renderer->GetVulkanParameters().StagingBuffer.Size = static_cast<uint32_t>(sizeof(m_indicesBuffer.m_Buffer[0]) * m_indicesBuffer.m_Buffer.size());
 
-		if (!renderer->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, renderer->GetVulkanParameters().StagingBuffer))
-		{
-			std::cout << "Could not create vertex buffer" << std::endl;
-			return false;
-		}
-
-		void* data;
-		vkMapMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory, 0, bufferSize, 0, &data);
-		memcpy(data, m_indicesBuffer.m_Buffer.data(), (size_t)bufferSize);
-		vkUnmapMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory);
-
-		if (!renderer->CreateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indicesBuffer.m_Handle))
-		{
-			std::cout << "Could not create vertex buffer" << std::endl;
-			return false;
-		}
-		//if (!CopyVertexData())
+		//if (!renderer->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, renderer->GetVulkanParameters().StagingBuffer))
+		//{
+		//	std::cout << "Could not create vertex buffer" << std::endl;
 		//	return false;
+		//}
+
+		//void* data;
+		//vkMapMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory, 0, bufferSize, 0, &data);
+		//memcpy(data, m_indicesBuffer.m_Buffer.data(), (size_t)bufferSize);
+		//vkUnmapMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory);
+
+		//if (!renderer->CreateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indicesBuffer.m_Handle))
+		//{
+		//	std::cout << "Could not create vertex buffer" << std::endl;
+		//	return false;
+		//}
+		////if (!CopyVertexData())
+		////	return false;
 
 
-		//copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-		VkCommandBuffer commandBuffer = renderer->BeginSingleTimeCommands();
+		////copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+		//VkCommandBuffer commandBuffer = renderer->BeginSingleTimeCommands();
 
-		VkBufferCopy copyRegion{};
-		copyRegion.size = bufferSize;
-		vkCmdCopyBuffer(commandBuffer, renderer->GetVulkanParameters().StagingBuffer.Handle, m_indicesBuffer.m_Handle.Handle, 1, &copyRegion);
+		//VkBufferCopy copyRegion{};
+		//copyRegion.size = bufferSize;
+		//vkCmdCopyBuffer(commandBuffer, renderer->GetVulkanParameters().StagingBuffer.Handle, m_indicesBuffer.m_Handle.Handle, 1, &copyRegion);
 
-		renderer->EndSingleTimeCommands(commandBuffer);
+		//renderer->EndSingleTimeCommands(commandBuffer);
 
-		vkDestroyBuffer(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Handle, nullptr);
-		vkFreeMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory, nullptr);
+		//vkDestroyBuffer(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Handle, nullptr);
+		//vkFreeMemory(renderer->GetVulkanParameters().Device, renderer->GetVulkanParameters().StagingBuffer.Memory, nullptr);
 
 		return true;
 	}
