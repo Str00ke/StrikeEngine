@@ -1,4 +1,5 @@
 #pragma once
+#include "Vector3.hpp"
 
 namespace StrikeEngine
 {
@@ -18,8 +19,15 @@ namespace StrikeEngine
 
 		template<typename T>
 		static T Clamp(T minValue, T maxValue, T value);
+
+		template<typename T>
+		static T Dot(Vector3<T> u, Vector3<T> v);
+
+		template<typename T>
+		static Vector3<T> Cross(Vector3<T> u, Vector3<T> v);
 	};
 
+	
 	
 
 

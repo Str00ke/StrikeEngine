@@ -1,6 +1,7 @@
 #include "Core/StrikeApp.hpp"
 #include "Model/RenderableResourceController.hpp"
-
+#include "Renderer/StrikeRenderer.hpp"
+#include "Core/OS.hpp"
 
 namespace StrikeEngine
 {
@@ -12,6 +13,12 @@ namespace StrikeEngine
 		m_isRunning = true;
 		m_Instance = this;
 		//resourceController = new RenderableResourceController();
+	}
+
+	void StrikeApp::init(StrikeWindow* _window)
+	{
+		m_renderer = new StrikeRenderer(_window);
+		m_renderer->init();
 	}
 
 	bool StrikeApp::IsRunning() const

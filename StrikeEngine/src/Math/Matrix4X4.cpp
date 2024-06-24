@@ -39,7 +39,7 @@ namespace StrikeEngine
 		m_mat[3][2] = translation.z;
 	}
 
-	void Matrix4X4::SetRotationX(float x)
+	void Matrix4X4::SetRotationX(const float x)
 	{
 		m_mat[1][1] = cos(x);
 		m_mat[1][2] = sin(x);
@@ -47,7 +47,7 @@ namespace StrikeEngine
 		m_mat[2][2] = cos(x);
 	}
 
-	void Matrix4X4::SetRotationY(float y)
+	void Matrix4X4::SetRotationY(const float y)
 	{
 		m_mat[0][0] = cos(y);
 		m_mat[0][2] = -sin(y);
@@ -55,7 +55,7 @@ namespace StrikeEngine
 		m_mat[2][2] = cos(y);
 	}
 
-	void Matrix4X4::SetRotationZ(float z)
+	void Matrix4X4::SetRotationZ(const float z)
 	{
 		m_mat[0][0] = cos(z);
 		m_mat[0][1] = sin(z);

@@ -125,6 +125,20 @@ Vector3<T> operator/(T value, const Vector3<T>& vec)
 	return Vector3{ vec.x / value, vec.y / value, vec.z / value };
 }
 
+
+template<typename T>
+Vector3<T>& Vector3<T>::normalize()
+{
+	T l = getLength();
+	return Vector3<T>(x / l, y / l, z / l);
+}
+
+template<typename T>
+T Vector3<T>::length()
+{
+	return sqrt((x * x) + (y * y) + (z * z));
+}
+
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const Vector3<T>& vec)
 {

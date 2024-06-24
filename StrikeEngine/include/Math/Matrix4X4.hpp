@@ -13,9 +13,9 @@ namespace StrikeEngine
 		{};
 		void Identity();
 		void SetTranslation(const Vector3f& translation);
-		void SetRotationX(float x);
-		void SetRotationY(float y);
-		void SetRotationZ(float z);
+		void SetRotationX(const float x);
+		void SetRotationY(const float y);
+		void SetRotationZ(const float z);
 		void SetScale(const Vector3f& scale);
 
 		void SetPerspectiveProjectionMatrix(const float aspectRatio, const float fieldOfView, const float nearClip, const float farClip);

@@ -24,6 +24,9 @@ struct Vector3
 	Vector3& operator/=(const Vector3& vec);
 	Vector3& operator/=(T value);
 
+	T length();
+	Vector3& normalize();
+
 	T x, y, z;
 };
 
