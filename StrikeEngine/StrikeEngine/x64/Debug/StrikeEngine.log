@@ -1,0 +1,6 @@
+﻿  StrikeRenderer.cpp
+C:\Users\cgarrigues\_Personal\StrikeEngine\StrikeEngine\include\Core\Time.hpp(21,3): warning C4091: 'static ': ignored on left of 'StrikeEngine::Time' when no variable is declared
+C:\Users\cgarrigues\_Personal\StrikeEngine\StrikeEngine\src\renderer\StrikeRenderer.cpp(37,29): error C2664: 'HRESULT CreateDXGIFactory1(const IID &,void **)': cannot convert argument 2 from 'IDXGIFactory4 **' to 'void **'
+C:\Users\cgarrigues\_Personal\StrikeEngine\StrikeEngine\src\renderer\StrikeRenderer.cpp(37,73): message : Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22621.0\shared\dxgi.h(2296,16): message : see declaration of 'CreateDXGIFactory1'
+C:\Users\cgarrigues\_Personal\StrikeEngine\StrikeEngine\src\renderer\StrikeRenderer.cpp(37,29): message : while trying to match the argument list '(const _GUID, IDXGIFactory4 **)'
