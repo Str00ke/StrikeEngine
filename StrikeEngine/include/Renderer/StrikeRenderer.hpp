@@ -7,7 +7,7 @@
 #include <iostream>
 #include "Tools/Tools.hpp"
 #include "Math/Matrix4X4.hpp"
-#include <dxgi1_4.h>
+#include <dxgi1_5.h>
 
 
 
@@ -31,11 +31,11 @@ namespace StrikeEngine
 		void init();
 
 		StrikeWindow* GetStrikeWindow();
-		IDXGIFactory4* getFactory() const;
+		IDXGIFactory5* getFactory() const;
 
 	private:
 		StrikeWindow* m_strikeWin;
-		IDXGIFactory4* m_dxgiFactory;
+		IDXGIFactory5* m_dxgiFactory;
 		Device* m_device;
 
 	protected:

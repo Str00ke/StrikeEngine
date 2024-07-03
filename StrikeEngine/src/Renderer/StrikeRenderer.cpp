@@ -29,12 +29,13 @@ namespace StrikeEngine
 		//Enable D3D12 debug layer
 		{
 			ComPtr<ID3D12Debug> debugController;
+			//Warning: On Windows 10, DirectX Debug layers are listed as optional features (Settings > System > Optional Features > "Graphics Tools"). If not listed, click add feature, then select Graphics Tools.
 			D3D::Utils::throwIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
 			debugController->EnableDebugLayer();
 		}
 #endif //DEBUG
 		
-		D3D::Utils::throwIfFailed(CreateDXGIFactory1(__uuidof(IDXGIFactory4), &m_dxgiFactory));
+		D3D::Utils::throwIfFailed(CreateDXGIFactory1(__uuidof(IDXGIFactory5), (void**) & m_dxgiFactory));
 
 		//Try to create hardware device
 		m_device = new Device();
@@ -45,7 +46,7 @@ namespace StrikeEngine
 		return m_strikeWin;
 	}
 
-	IDXGIFactory4* StrikeRenderer::getFactory() const
+	IDXGIFactory5* StrikeRenderer::getFactory() const
 	{
 		return m_dxgiFactory;
 	}

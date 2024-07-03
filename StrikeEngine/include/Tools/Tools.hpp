@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include "Renderer/Device.hpp"
 
 
 namespace StrikeEngine 
@@ -19,11 +20,11 @@ namespace StrikeEngine
 				Device(/*VK_NULL_HANDLE*/0) {
 			}
 
-			/*AutoDeleter(T object, F deleter, VkDevice device) :
+			AutoDeleter(T object, F deleter, Device device) :
 				Object(object),
 				Deleter(deleter),
 				Device(device) {
-			}*/
+			}
 
 			AutoDeleter(AutoDeleter&& other) {
 				*this = std::move(other);
@@ -39,7 +40,7 @@ namespace StrikeEngine
 				if (this != &other) {
 					Object = other.Object;
 					Deleter = other.Deleter;
-					//Device = other.Device;
+					Device = other.Device;
 					other.Object = /*VK_NULL_HANDLE*/0;
 				}
 				return *this;
@@ -58,7 +59,7 @@ namespace StrikeEngine
 			AutoDeleter& operator=(const AutoDeleter&);
 			T         Object;
 			F         Deleter;
-			//VkDevice  Device;
+			Device	  Device;
 		};
 
 		std::vector<char> GetBinaryFileContents(const std::string& filename);

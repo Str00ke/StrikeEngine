@@ -129,7 +129,7 @@ Vector3<T> operator/(T value, const Vector3<T>& vec)
 template<typename T>
 Vector3<T>& Vector3<T>::normalize()
 {
-	T l = getLength();
+	T l = length();
 	return Vector3<T>(x / l, y / l, z / l);
 }
 
