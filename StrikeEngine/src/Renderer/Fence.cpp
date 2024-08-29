@@ -12,9 +12,14 @@ ID3D12Fence* StrikeEngine::Fence::getFenceAPI() const
 	return m_fence.Get();
 }
 
-const UINT64 StrikeEngine::Fence::getFenceValue() const
+const u64 StrikeEngine::Fence::getFenceValue() const
 {
 	return m_fenceValue;
+}
+
+void StrikeEngine::Fence::increment()
+{
+	m_fenceValue++;
 }
 
 void StrikeEngine::Fence::createFence(Device* _device)

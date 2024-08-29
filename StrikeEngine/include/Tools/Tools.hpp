@@ -5,7 +5,7 @@
 #include <vector>
 #include <array>
 #include "Renderer/Device.hpp"
-
+#include "Core/defines.hpp"
 
 namespace StrikeEngine 
 {
@@ -69,6 +69,9 @@ namespace StrikeEngine
 		std::array<float, 16> GetPerspectiveProjectionMatrix(const float aspectRatio, const float fieldOfView, const float nearClip, const float farClip);
 	
 		std::array<float, 16> GetOrthographicProjectionMatrix(const float leftPlane, const float rightPlane, const float topPlane, const float bottomPlane, const float nearPlane, const float farPlane);
+
+		u32 computeBufferConstantByteSize(u32 _byteSize);
+
 	}
 
 }

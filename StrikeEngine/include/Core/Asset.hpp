@@ -17,9 +17,13 @@ namespace StrikeEngine
 		void SetPath(const std::string& assetPath);
 		std::string& GetPath();
 
+		inline void SetName(const std::string& _name) { m_name = _name; };
+		inline std::string& GetName() { return m_name; };
+
 	protected:
 
 	private:
+		std::string m_name = "Name_Undifined";
 		std::string m_assetPath = "NULL";
 	};
 

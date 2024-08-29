@@ -16,7 +16,7 @@ namespace StrikeEngine
 		~CommandAllocator() = default;
 
 		ID3D12CommandAllocator* getCommandAllocatorAPI() const;
-
+		void reset() const;
 
 	private:
 		void createCmdAlloc(Device* _device);

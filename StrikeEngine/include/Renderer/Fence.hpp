@@ -1,6 +1,7 @@
 #pragma once
 #include <d3d12.h>
 #include "Core/ComPtr.hpp"
+#include "Core/defines.hpp"
 
 namespace StrikeEngine
 {
@@ -16,13 +17,14 @@ namespace StrikeEngine
 		~Fence() = default;
 
 		ID3D12Fence* getFenceAPI() const;
-		const UINT64 getFenceValue() const;
+		const u64 getFenceValue() const;
+		void increment();
 
 	private:
 		void createFence(Device* _device);
 
 		ComPtr<ID3D12Fence> m_fence;
-		UINT64 m_fenceValue;
+		u64 m_fenceValue;
 	};
 }
 

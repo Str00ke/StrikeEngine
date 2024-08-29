@@ -18,8 +18,8 @@ namespace StrikeEngine
 		Model()
 		{}
 
-		Mesh& GetMesh();
-		void SetMesh(const Mesh& mesh);
+		//Mesh& GetMesh();
+		//void SetMesh(const Mesh& mesh);
 		Texture& GetTexture();
 		Texture& GetDepthTexture();
 		//BufferParameters& GetUniformBuffer();
@@ -31,7 +31,7 @@ namespace StrikeEngine
 		Transform transform;
 
 	private:
-		Mesh m_mesh;
+		//Mesh m_mesh;
 		Texture m_tex;
 		Texture m_depth;
 

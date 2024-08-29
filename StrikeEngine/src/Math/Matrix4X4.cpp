@@ -70,6 +70,30 @@ namespace StrikeEngine
 		m_mat[2][2] = scale.z;
 	}
 
+	void Matrix4X4::SetRaw(const Vector4f& _row1, const Vector4f& _row2, const Vector4f& _row3, const Vector4f& _row4)
+	{
+		//column row
+		m_mat[0][0] = _row1.x;
+		m_mat[0][1] = _row1.y;
+		m_mat[0][2] = _row1.z;
+		m_mat[0][3] = _row1.w;
+
+		m_mat[1][0] = _row2.x;
+		m_mat[1][1] = _row2.y;
+		m_mat[1][2] = _row2.z;
+		m_mat[1][3] = _row2.w;
+
+		m_mat[2][0] = _row3.x;
+		m_mat[2][1] = _row3.y;
+		m_mat[2][2] = _row3.z;
+		m_mat[2][3] = _row3.w;
+
+		m_mat[3][0] = _row4.x;
+		m_mat[3][1] = _row4.y;
+		m_mat[3][2] = _row4.z;
+		m_mat[3][3] = _row4.w;
+	}
+
 	void Matrix4X4::SetPerspectiveProjectionMatrix(const float aspectRatio, const float fieldOfView, const float nearClip, const float farClip)
 	{
 		float yscale = 1.0f / tan(fieldOfView / 2.0f);
@@ -260,6 +284,21 @@ namespace StrikeEngine
 		}
 
 		SetMatrix(out);
+	}
+
+	Matrix4X4 Matrix4X4::operator*(const Matrix4X4& _other)
+	{
+		Matrix4X4 out;
+		for (int i = 0; i < 4; ++i)
+		{
+			for (int j = 0; j < 4; ++j)
+			{
+				out.m_mat[i][j] =
+					m_mat[i][0] * _other.m_mat[0][j] + m_mat[i][1] * _other.m_mat[1][j] +
+					m_mat[i][2] * _other.m_mat[2][j] + m_mat[i][3] * _other.m_mat[3][j];
+			}
+		}
+		return out;
 	}
 
 }

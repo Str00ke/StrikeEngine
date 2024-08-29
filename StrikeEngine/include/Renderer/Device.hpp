@@ -1,9 +1,11 @@
 #pragma once
 #include <d3d12.h>
 #include "Core/ComPtr.hpp"
+#include <dxgi1_5.h>
 
 namespace StrikeEngine
 {
+	class DescriptorHeap;
 	class Device
 	{
 	public:
@@ -21,9 +23,16 @@ namespace StrikeEngine
 		const UINT getNodeCount() const;
 
 		void createDevice();
+		IDXGIFactory5* getFactory() const;
+
+		IID getRIID();
+
+		void enableDebugValidationLayer();
 
 	private:
 		ComPtr<ID3D12Device> m_device;
+		IDXGIFactory5* m_dxgiFactory;
+
 	};
 }
 

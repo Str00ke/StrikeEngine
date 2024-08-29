@@ -3,10 +3,10 @@
 #include <stdexcept>
 #include <thread>
 #include <chrono>
-#include "Core/Time.hpp"
 #include <stdio.h>
 #include "Input/InputSystem.hpp"
-
+#include "Renderer/StrikeRenderer.hpp"
+#include "Core/StrikeApp.hpp"
 
 namespace StrikeEngine
 {
@@ -27,6 +27,7 @@ namespace StrikeEngine
 
 	StrikeWindow::StrikeWindow() : m_params()
 	{
+		time = Time();
 	}
 
 #define ENGINE_NAME "StrikeEngine"
@@ -155,9 +156,14 @@ namespace StrikeEngine
 
 	bool StrikeWindow::Create(const char* title, const float& width, const float& height)
 	{
+		// Enable runtime memory check for debug details
+#if defined(DEBUG) | defined(_DEBUG)
+		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 
 		m_params.Instance = GetModuleHandle(nullptr);
-
+		m_params.Width = width;
+		m_params.Height = height;
 		WNDCLASSEX wc = {};
 		/* More info: https://learn.microsoft.com/fr-fr/windows/win32/api/winuser/ns-winuser-wndclassa
 		UINT      style;
@@ -222,7 +228,7 @@ namespace StrikeEngine
 		return true;
 	}
 
-	bool StrikeWindow::RenderingLoop(OS::Window& window) const
+	bool StrikeWindow::RenderingLoop(StrikeRenderer* _renderer)
 	{
 		// Display window
 		ShowWindow(m_params.Handle, SW_SHOWNORMAL);
@@ -234,8 +240,10 @@ namespace StrikeEngine
 		bool resize = false;
 		bool res = true;
 
+		time.reset();
+
 		while (loop) {
-			Time::Update();
+			//Time::Update();
 			if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
 				//HandleKeyMsg(message);
 				// Process events
@@ -247,6 +255,7 @@ namespace StrikeEngine
 					// Close
 				case WM_USER + 2:
 					loop = false;
+					res = false;
 					break;
 
 				//========Input Managment=========
@@ -323,17 +332,19 @@ namespace StrikeEngine
 				DispatchMessage(&message);
 			}
 			else {
+				time.tick();
 				// Resize
 				if (resize) {
 					resize = false;
-					if (!window.OnWindowSizeChanged()) {
+					if (!m_window.OnWindowSizeChanged()) {
 						res = false;
 						break;
 					}
 				}
 				// Draw
-				if (window.ReadyToDraw()) {
-					if (!window.Draw()) {
+				if (m_window.ReadyToDraw()) {
+					_renderer->Draw(time.deltaTime());
+					if (!m_window.Draw()) {
 						res = false;
 						break;
 					}
@@ -425,4 +436,14 @@ namespace StrikeEngine
 		}
 	}
 
+}
+
+bool StrikeEngine::OS::Window::OnWindowSizeChanged()
+{
+	return true;
+}
+
+bool StrikeEngine::OS::Window::Draw()
+{
+	return true;
 }

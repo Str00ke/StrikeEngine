@@ -10,6 +10,8 @@ struct Vector3
 	explicit Vector3(T V); //Forbid implicit cast, like Vector3 vec = 5
 	Vector3(T X, T Y, T Z);
 
+	bool operator==(const Vector3& vec) const;
+	
 	Vector3 operator+(const Vector3& vec) const;
 	Vector3 operator-(const Vector3& vec) const;
 	Vector3 operator*(const Vector3& vec) const;

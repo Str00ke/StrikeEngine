@@ -1,5 +1,6 @@
 #pragma once
 #include "Math/Vector3.hpp"
+#include "Math/Vector4.hpp"
 
 namespace StrikeEngine
 {
@@ -7,7 +8,7 @@ namespace StrikeEngine
 	{
 	public:
 		Matrix4X4();
-		Matrix4X4(const Matrix4X4&) = delete;
+		//Matrix4X4(const Matrix4X4&) = delete;
 		//Matrix4X4(Matrix4X4&&) = delete;
 		~Matrix4X4()
 		{};
@@ -17,6 +18,7 @@ namespace StrikeEngine
 		void SetRotationY(const float y);
 		void SetRotationZ(const float z);
 		void SetScale(const Vector3f& scale);
+		void SetRaw(const Vector4f& _row1, const Vector4f& _row2, const Vector4f& _row3, const Vector4f& _row4);
 
 		void SetPerspectiveProjectionMatrix(const float aspectRatio, const float fieldOfView, const float nearClip, const float farClip);
 		void SetOrthographicProjectionMatrix(const float leftPlane, const float rightPlane, const float topPlane, const float bottomPlane, const float nearPlane, const float farPlane);
@@ -35,6 +37,7 @@ namespace StrikeEngine
 		const float** GetMatrix();
 
 		void operator *=(const Matrix4X4& matrix);
+		Matrix4X4 operator *(const Matrix4X4& _other);
 
 	public:
 		float m_mat[4][4] = {};

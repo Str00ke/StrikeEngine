@@ -51,3 +51,6 @@ vs*/
 *.vcxproj
 *.filters
 *.user
+
+# Debug files
+*.tlog

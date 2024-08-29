@@ -2,14 +2,16 @@
 #include <vector>
 #include <string>
 #include "Renderer/StrikeRenderer.hpp"
+#include "defines.hpp"
+#include <iostream>
 
 void StrikeEngine::D3D::Utils::D3DUtils::logAdapters()
 {
-	UINT i = 0;
+	u32 i = 0;
 	IDXGIAdapter* adapter = nullptr;
 	std::vector<IDXGIAdapter*> adapterList;
 
-	auto factory = StrikeRenderer::Instance()->getFactory();
+	auto factory = StrikeRenderer::Instance()->getDevice()->getFactory();
 	while (factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND)
 	{
 		DXGI_ADAPTER_DESC desc;
@@ -44,6 +46,7 @@ void StrikeEngine::D3D::Utils::D3DUtils::logAdaptersOutput(IDXGIAdapter* _adapte
 		text += desc.DeviceName;
 		text += L"\n";
 		OutputDebugStringW(text.c_str());
+		std::wcout << text << "\n";
 
 		logOutputDisplayModes(output, DXGI_FORMAT_B8G8R8A8_UNORM);
 		
@@ -74,6 +77,7 @@ void StrikeEngine::D3D::Utils::D3DUtils::logOutputDisplayModes(IDXGIOutput* _out
 			L"Refresh = " + std::to_wstring(n) + L"/" + std::to_wstring(d) + L"\n";
 
 		OutputDebugStringW(text.c_str());
+		std::wcout << text << "\n";
 	}
 }
 

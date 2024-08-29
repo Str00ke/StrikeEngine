@@ -12,10 +12,14 @@
 #endif //Platform used
 #include "Math/Vector2.hpp"
 #include <Windows.h>
-
+#include "core/defines.hpp"
+#include "Core/Time.hpp"
 
 namespace StrikeEngine
 {
+	/////////////////////////////////////////////////////////////////////////////////////////////
+	/// MANY OF THE OS STUFF NEEDS TO BE REWORKED ON
+	/////////////////////////////////////////////////////////////////////////////////////////////
 	namespace OS
 	{
 		//Use library depend of OS type
@@ -28,8 +32,8 @@ namespace StrikeEngine
 		class Window
 		{
 		public:
-			virtual bool OnWindowSizeChanged() = 0;
-			virtual bool Draw() = 0;
+			bool OnWindowSizeChanged();
+			bool Draw();
 
 			virtual bool ReadyToDraw() const final
 			{
@@ -37,7 +41,7 @@ namespace StrikeEngine
 			}
 
 			Window() :
-				m_CanRender(false) {}
+				m_CanRender(true) {}
 
 			virtual ~Window() {}
 
@@ -51,6 +55,8 @@ namespace StrikeEngine
 			//#ifdef VK_USE_PLATFORM_WIN32_KHR
 			HINSTANCE	Instance;
 			HWND		Handle;
+			u32			Width;
+			u32			Height;
 
 			WindowParameters() :
 				Instance(),
@@ -60,7 +66,7 @@ namespace StrikeEngine
 		};
 	}
 
-
+	class StrikeRenderer;
 	class StrikeWindow
 	{
 	public:
@@ -70,14 +76,16 @@ namespace StrikeEngine
 		~StrikeWindow();
 
 		bool Create(const char* title, const float& width, const float& height);
-		bool RenderingLoop(OS::Window& window) const;
+		bool RenderingLoop(StrikeRenderer* _renderer); // TODO: the main loop needs to be refactored
 		LRESULT HandleKeyMsg(MSG msg) const;
 		OS::WindowParameters GetParams() const;
 
 		void GetMousePosWindow(Vector2i* vec);
+		Time time; // TODO: MOVE
 
 	private:
 		OS::WindowParameters m_params;
+		OS::Window m_window;
 
 	};
 

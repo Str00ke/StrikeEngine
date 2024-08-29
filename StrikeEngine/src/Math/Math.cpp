@@ -25,13 +25,13 @@ namespace StrikeEngine
 		return firstValue < secondValue ? firstValue : secondValue;
 	}
 
-	template<typename T>
+	/*template<typename T>
 	T Math::Clamp(T minValue, T maxValue, T value)
 	{
 		if (value < minValue) return minValue;
 		else if (value > maxValue) return maxValue;
 		else return value;
-	}
+	}*/
 
 	template<typename T>
 	Vector3<T>Math::Cross(Vector3<T> u, Vector3<T> v)

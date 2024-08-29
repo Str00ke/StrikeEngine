@@ -4,7 +4,7 @@
 
 namespace StrikeEngine
 {
-	Mesh& Model::GetMesh()
+	/*Mesh& Model::GetMesh()
 	{
 		return m_mesh;
 	}
@@ -12,7 +12,7 @@ namespace StrikeEngine
 	void Model::SetMesh(const Mesh& mesh)
 	{
 		m_mesh = mesh;
-	}
+	}*/
 
 	Texture& Model::GetTexture()
 	{
@@ -31,15 +31,15 @@ namespace StrikeEngine
 		if(!m_tex.Create(StrikeRenderer::Instance(), this))
 			return false;
 
-		if (!m_mesh.Create(StrikeRenderer::Instance()))
-			return false;
+		/*if (!m_mesh.Create(StrikeRenderer::Instance()))
+			return false;*/
 
 		return true;
 	}
 
 	bool Model::UpdateUniformBuffer()
 	{
-		float time = Time::GetCurrTime();
+		//float time = Time::GetCurrTime();
 
 		UniformBufferObject ubo{};
 		/*ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
