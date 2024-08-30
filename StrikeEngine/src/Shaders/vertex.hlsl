@@ -26,7 +26,9 @@ VertexOut VS(VertexIn _vIn)
 
     // Transform to homogeneous clip space
     vOut.posH = mul(float4(_vIn.posL, 1.0f), gWorldViewProj);
+    //vOut.posH.w = 4.5;
     //vOut.posH = float4(_vIn.posL.xyz, 1.0);
+    //vOut.posH.z = 0.0f;
 
     // Pass vertex color into the pixel shader
     vOut.color = _vIn.color;

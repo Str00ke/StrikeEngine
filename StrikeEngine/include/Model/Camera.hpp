@@ -30,6 +30,8 @@ namespace StrikeEngine
 		float GetNearClip() const;
 		void SetNearClip(float newNear);
 
+		const float getAspectRatio() const;
+
 		void UpdateUbo();
 
 		float computeVerticalFOV();

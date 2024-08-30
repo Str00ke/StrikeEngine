@@ -5,6 +5,7 @@
 namespace StrikeEngine
 {
 #define PI 3.14159265358979323846264338327950288419716939937510582
+#define PIF 3.141592f
 
 	static class Math
 	{

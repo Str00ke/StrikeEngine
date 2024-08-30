@@ -25,9 +25,9 @@ int main()
 	bool running = true;
 	
 	//Vertical
-	inputs.AddBinding(StrikeEngine::KeyCode::Q, StrikeEngine::KeyStateType::ON_DOWN, [&] { pRend->offX = -1.0f; });
+	inputs.AddBinding(StrikeEngine::KeyCode::Q, StrikeEngine::KeyStateType::ON_DOWN, [&] { pRend->m_move += -0.033f; });
 	inputs.AddBinding(StrikeEngine::KeyCode::Q, StrikeEngine::KeyStateType::ON_UP, [&] { pRend->offX = 0.0f; });
-	inputs.AddBinding(StrikeEngine::KeyCode::D, StrikeEngine::KeyStateType::ON_DOWN, [&] {  pRend->offX = 1.0f; });
+	inputs.AddBinding(StrikeEngine::KeyCode::D, StrikeEngine::KeyStateType::ON_DOWN, [&] {  pRend->m_move += 0.033f; });
 	inputs.AddBinding(StrikeEngine::KeyCode::D, StrikeEngine::KeyStateType::ON_UP, [&] { pRend->offX = 0.0f; });
 
 	//Horizontal
@@ -36,7 +36,8 @@ int main()
 	inputs.AddBinding(StrikeEngine::KeyCode::Z, StrikeEngine::KeyStateType::ON_DOWN, [&] {  pRend->offY = 1.0f; });
 	inputs.AddBinding(StrikeEngine::KeyCode::Z, StrikeEngine::KeyStateType::ON_UP, [&] { pRend->offY = 0.0; });
 
-	inputs.AddBinding(StrikeEngine::KeyCode::A, StrikeEngine::KeyStateType::ON_DOWN, [&] { pRend->offRotX = -1.0f; });
+	bool ispressed = false;
+	/*inputs.AddBinding(StrikeEngine::KeyCode::A, StrikeEngine::KeyStateType::ON_DOWN, [&] { pRend->offRotX = -1.0f; });
 	inputs.AddBinding(StrikeEngine::KeyCode::A, StrikeEngine::KeyStateType::ON_UP, [&] { pRend->offRotX = 0.0; });
 	inputs.AddBinding(StrikeEngine::KeyCode::E, StrikeEngine::KeyStateType::ON_DOWN, [&] {  pRend->offRotX = 1.0f; });
 	inputs.AddBinding(StrikeEngine::KeyCode::E, StrikeEngine::KeyStateType::ON_UP, [&] { pRend->offRotX = 0.0; });
@@ -44,7 +45,18 @@ int main()
 	inputs.AddBinding(StrikeEngine::KeyCode::W, StrikeEngine::KeyStateType::ON_DOWN, [&] { pRend->offRotY = -1.0f; });
 	inputs.AddBinding(StrikeEngine::KeyCode::W, StrikeEngine::KeyStateType::ON_UP, [&] { pRend->offRotY = 0.0; });
 	inputs.AddBinding(StrikeEngine::KeyCode::X, StrikeEngine::KeyStateType::ON_DOWN, [&] {  pRend->offRotY = 1.0f; });
-	inputs.AddBinding(StrikeEngine::KeyCode::X, StrikeEngine::KeyStateType::ON_UP, [&] { pRend->offRotY = 0.0; });
+	inputs.AddBinding(StrikeEngine::KeyCode::X, StrikeEngine::KeyStateType::ON_UP, [&] { pRend->offRotY = 0.0; });*/
+	inputs.AddBinding(StrikeEngine::KeyCode::A, StrikeEngine::KeyStateType::ON_DOWN, [&] { ispressed = true; });
+	inputs.AddBinding(StrikeEngine::KeyCode::A, StrikeEngine::KeyStateType::ON_UP, [&] { ispressed = true; });
+	inputs.OnMouseMove([&] 
+		{
+			if (ispressed)
+			{			
+				Vector2i pos;
+				inputs.GetMouseWindowPosition(&pos);
+				pRend->onMouseMove(pos.x, pos.y);
+			}
+		});
 
 
 	//inputs.OnMouseMove([] {std::cout << "Hello\n"; });

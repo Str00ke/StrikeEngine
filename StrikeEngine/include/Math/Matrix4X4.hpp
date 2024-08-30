@@ -1,6 +1,7 @@
 #pragma once
 #include "Math/Vector3.hpp"
 #include "Math/Vector4.hpp"
+#include <DirectXMath.h>
 
 namespace StrikeEngine
 {
@@ -38,6 +39,17 @@ namespace StrikeEngine
 
 		void operator *=(const Matrix4X4& matrix);
 		Matrix4X4 operator *(const Matrix4X4& _other);
+
+		static DirectX::XMFLOAT4X4 Identity4x4()
+		{
+			static DirectX::XMFLOAT4X4 I(
+				1.0f, 0.0f, 0.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f);
+
+			return I;
+		}
 
 	public:
 		float m_mat[4][4] = {};

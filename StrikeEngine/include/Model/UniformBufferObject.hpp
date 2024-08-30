@@ -5,6 +5,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/hash.hpp"
+#include <DirectXMath.h>
 
 namespace StrikeEngine
 {
@@ -15,7 +16,8 @@ namespace StrikeEngine
 		Matrix4X4 view;
 		Matrix4X4 proj;
 		Vector4f camPos;*/
-		Matrix4X4 worldViewProj;
+		//Matrix4X4 worldViewProj;
+		DirectX::XMFLOAT4X4 WorldViewProj = Matrix4X4::Identity4x4();
 	};
 }
 

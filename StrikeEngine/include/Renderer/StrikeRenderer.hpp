@@ -15,6 +15,7 @@
 #include "Buffer.hpp"
 #include "Core/Blob.hpp"
 #include "PipelineState.hpp"
+#include <DirectXMath.h>
 
 namespace StrikeEngine
 {
@@ -97,6 +98,13 @@ namespace StrikeEngine
 		float offRotX = 0.0f;
 		float offRotY = 0.0f;
 
+		float m_theta = 1.5f * PI;
+		float m_phi = PI / 4;
+		float m_radius = 5.0f;
+		float m_move = 0.0f;
+		Vector2f m_lastMousePos = Vector2f(0.0f, 0.0f);
+		DirectX::XMFLOAT4X4 m_proj = Matrix4X4::Identity4x4();
+
 		inline void upR() { _colors[0] += 10.0f * m_strikeWin->time.deltaTime(); Math::Clamp(0.0f, 1.0f, _colors[0]); std::cout << _colors[0] << "\n"; };
 		inline void downR() { _colors[0] -= 10.0f * m_strikeWin->time.deltaTime(); Math::Clamp(0.0f, 1.0f, _colors[0]); };
 
@@ -105,6 +113,8 @@ namespace StrikeEngine
 
 		void upB() { _colors[2] += 10.0f * m_strikeWin->time.deltaTime(); Math::Clamp(0.0f, 1.0f, _colors[2]); };
 		void downB() { _colors[2] -= 10.0f * m_strikeWin->time.deltaTime(); Math::Clamp(0.0f, 1.0f, _colors[2]); };
+
+		void onMouseMove(float x, float y);
 
 		inline const void StrikeRenderer::setActiveCamera(Camera& _camera)
 		{

@@ -47,18 +47,18 @@ namespace StrikeEngine
 		ubo.proj = glm::perspective(glm::radians(45.0f), StrikeRenderer::Instance()->GetVulkanParameters().SwapChain.Extent.width / (float)StrikeRenderer::Instance()->GetVulkanParameters().SwapChain.Extent.height, 0.1f, 10.0f);
 		ubo.proj[1][1] *= -1;*/
 
-		ubo.model.Identity();
-		ubo.model.m_mat[3][0] = transform.m_position.x;
-		ubo.model.m_mat[3][1] = transform.m_position.y;
-		ubo.model.m_mat[3][2] = transform.m_position.z;
-		//TODO: Add rot and scale
-		ubo.view = Camera::Instance()->m_viewCam;
-		ubo.proj = Camera::Instance()->m_projCam;
-		auto camVec = Camera::Instance()->m_worldCam.GetTranslation();
-		Vector4f vec{ camVec.x, camVec.y, camVec.z, 1.0f };
-		ubo.camPos = vec;
+		//ubo.model.Identity();
+		//ubo.model.m_mat[3][0] = transform.m_position.x;
+		//ubo.model.m_mat[3][1] = transform.m_position.y;
+		//ubo.model.m_mat[3][2] = transform.m_position.z;
+		////TODO: Add rot and scale
+		//ubo.view = Camera::Instance()->m_viewCam;
+		//ubo.proj = Camera::Instance()->m_projCam;
+		//auto camVec = Camera::Instance()->m_worldCam.GetTranslation();
+		//Vector4f vec{ camVec.x, camVec.y, camVec.z, 1.0f };
+		//ubo.camPos = vec;
 
-		memcpy(UniformBufferMapped, &ubo, sizeof(ubo));
+		//memcpy(UniformBufferMapped, &ubo, sizeof(ubo));
 		return true;
 	}
 

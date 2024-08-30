@@ -92,6 +92,11 @@ namespace StrikeEngine
 		m_nearClip = newNear > 0.1f ? newNear : 0.1f;
 	}
 
+	const float Camera::getAspectRatio() const
+	{
+		return m_aspectRatio;
+	}
+
 	void Camera::UpdateUbo()
 	{
 		m_cameraConstantBuffer->copyData(0, m_cameraUBO);

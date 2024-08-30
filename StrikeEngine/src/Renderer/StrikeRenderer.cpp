@@ -20,6 +20,8 @@
 #include "Renderer/Fence.hpp"
 #include "Renderer/RootSignature.hpp"
 
+#include <DirectXMath.h>
+
 namespace StrikeEngine
 {
 	StrikeRenderer* StrikeRenderer::m_instance = nullptr;
@@ -60,6 +62,9 @@ namespace StrikeEngine
 
 		// Wait until initialization is complete
 		cmdQueue->flush(m_fence);
+
+		DirectX::XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(0.25f * PI, getAspectRatio(), 1.0f, 1000.0f);
+		XMStoreFloat4x4(&m_proj, P);
 	}
 
 	StrikeWindow* StrikeRenderer::GetStrikeWindow() const
@@ -135,41 +140,36 @@ namespace StrikeEngine
 	{
 
 		UniformBufferObject ubo;
-		/*ubo.model.Identity();
-		ubo.model.SetTranslation(Vector3f(1.0f, 0.0f, 0.0f));
-		ubo.view = Camera::Instance()->m_viewCam;
-		ubo.proj = Camera::Instance()->m_projCam;
-		auto camVec = Camera::Instance()->m_worldCam.GetTranslation();
-		Vector4f vec{ camVec.x, camVec.y, camVec.z, 1.0f };
-		ubo.camPos = vec;*/
+
+		using namespace DirectX;
+		XMFLOAT4X4 mWorld = Matrix4X4::Identity4x4();
+		XMFLOAT4X4 mView = Matrix4X4::Identity4x4();
+		//XMFLOAT4X4 mProj = Matrix4X4::Identity4x4();
+
+		float x = m_radius * sinf(m_phi) * cosf(m_theta);
+		float z = m_radius * sinf(m_phi) * sinf(m_theta);
+		float y = m_radius * cosf(m_phi);
+		//m_move += _deltaTime;
+		//if (m_move == 0.0f) m_move += 0.01f;
+		//std::cout << m_move << "\n";
+		std::cout << x << " , " << x << " , " << z << std::endl;
+		//XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
+		XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
+		XMVECTOR target = XMVectorZero();
+		XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 		// Build the view matrix.
-		posX += offX * _deltaTime;
-		posY += offY * _deltaTime;
-		Vector3f pos(posX, posY, posZ);
+		XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+		XMStoreFloat4x4(&mView, view);
 
-		rotX += offRotX * _deltaTime;
-		rotY += offRotY * _deltaTime;
+		XMMATRIX world = XMLoadFloat4x4(&mWorld);
+		XMMATRIX proj = XMLoadFloat4x4(&m_proj);
+// 		XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * PI, getAspectRatio(), 1.0f, 1000.0f);
+// 		XMStoreFloat4x4(&mProj, P);
+		XMMATRIX worldViewProj = world * view * proj;
 
-		Matrix4X4 view = {};
-		view.Identity();
-		view.SetTranslation(pos);
-		view.SetRotationX(rotX);
-		view.SetRotationY(rotY);
-		view.SetRotationZ(rotY);
-
-		Matrix4X4 world = {};
-		world.Identity();
-		Camera::Instance()->Update();
-		Matrix4X4 proj = Camera::Instance()->m_projCam;
-		Matrix4X4 worldViewProj = world * view * proj;
-		ubo.worldViewProj = worldViewProj;
-
-		Matrix4X4 debug = {};
-		debug.Identity();
-		debug.SetTranslation(pos);
-		ubo.worldViewProj = debug;
-
+		// Update the constant buffer with the latest worldViewProj matrix.
+		XMStoreFloat4x4(&ubo.WorldViewProj, XMMatrixTranspose(worldViewProj));
 		m_objectCB->copyData(0, ubo);
 
 		// Reuse the memory associated with command recording.
@@ -186,8 +186,8 @@ namespace StrikeEngine
 		D3D12_VIEWPORT viewport;
 		viewport.TopLeftX = 0.0f;
 		viewport.TopLeftY = 0.0f;
-		viewport.Width = m_strikeWin->GetParams().Width;
-		viewport.Height = m_strikeWin->GetParams().Height;
+		viewport.Width = static_cast<float>(m_strikeWin->GetParams().Width);
+		viewport.Height = static_cast<float>(m_strikeWin->GetParams().Height);
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		cmdList->RSSetViewport(1, &viewport);
@@ -206,7 +206,7 @@ namespace StrikeEngine
 		// Clear the back buffer and depth buffer
 		f32 col[4] = { 0.0f, 0.0f, 0.139f, 1.0 };
 		auto back = currentBackBufferView();
-		cmdList->clearRenderTargetView(currentBackBufferView(), _colors);
+		cmdList->clearRenderTargetView(currentBackBufferView(), col);
 		cmdList->clearDepthStencilView(depthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 		// Specify the buffer we are going to render into
@@ -249,6 +249,24 @@ namespace StrikeEngine
 	}
 
 	
+
+	void StrikeRenderer::onMouseMove(float x, float y)
+	{
+		// Make each pixel correspond to a quarter of a degree.
+		float dx = DirectX::XMConvertToRadians(0.25f * static_cast<float>(x - m_lastMousePos.x));
+		float dy = DirectX::XMConvertToRadians(0.25f * static_cast<float>(y - m_lastMousePos.y));
+
+		//std::cout << dx << " , " << dy << std::endl;
+		// Update angles based on input to orbit camera around box.
+		m_theta += dx;
+		m_phi += dy;
+
+		// Restrict the angle mPhi.
+		m_phi = Math::Clamp(m_phi, 0.1f, PIF - 0.1f);
+
+		m_lastMousePos.x = x;
+		m_lastMousePos.y = y;
+	}
 
 	void StrikeRenderer::buildDescriptorHeaps()
 	{
@@ -376,9 +394,6 @@ namespace StrikeEngine
 	void StrikeRenderer::buildShadersAndInputLayout()
 	{
 		HRESULT hr = S_OK;
-
-		/*m_vsByteCode = StrikeEngine::D3D::Utils::compileShader(L"..\\src\\Shaders\\vertex.hlsl", nullptr, "VS", "vs_5_0");
-		m_psByteCode = StrikeEngine::D3D::Utils::compileShader(L"..\\src\\Shaders\\pixel.hlsl", nullptr, "PS", "ps_5_0");*/
 		m_vsByteCode = StrikeEngine::D3D::Utils::compileShader(L"C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/src/Shaders/vertex.hlsl", nullptr, "VS", "vs_5_0");
 		m_psByteCode = StrikeEngine::D3D::Utils::compileShader(L"C:/Users/cgarrigues/_Personal/StrikeEngine/StrikeEngine/src/Shaders/pixel.hlsl", nullptr, "PS", "ps_5_0");
 
@@ -386,21 +401,21 @@ namespace StrikeEngine
 		/*{
 			*Vertex::getVertexStructureDescriptor()
 		};*/
-		//m_inputLayout = Vertex::getVertexStructureDescriptor();
 	}
 
 	void StrikeRenderer::buildGeometry()
 	{
+		float size = 0.5f;
 		std::array<Vertex, 8> vertices =
 		{
-			Vertex{Vector3f(-0.5f, -0.5f, -0.5f),	Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
-			Vertex{Vector3f(-0.5f, 0.5f, -0.5f),	Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
-			Vertex{Vector3f(0.5f, 0.5f, -0.5f),		Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
-			Vertex{Vector3f(0.5f, -0.5f, -0.5f),	Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
-			Vertex{Vector3f(-0.5f, -0.5f, 0.5f),	Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
-			Vertex{Vector3f(-0.5f, 0.5f, 0.5f),		Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
-			Vertex{Vector3f(0.5f, 0.5f, 0.5f),		Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
-			Vertex{Vector3f(0.5f, -0.5f, 0.5f),		Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
+			Vertex{Vector3f(-size, -size, -size),	Vector3f(1.0f, 0.0f, 0.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
+			Vertex{Vector3f(-size, size, -size),	Vector3f(0.0f, 1.0f, 0.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
+			Vertex{Vector3f(size, size, -size),		Vector3f(0.0f, 0.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
+			Vertex{Vector3f(size, -size, -size),	Vector3f(1.0f, 0.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
+			Vertex{Vector3f(-size, -size, size),	Vector3f(0.0f, 1.0f, 0.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
+			Vertex{Vector3f(-size, size, size),		Vector3f(1.0f, 1.0f, 0.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
+			Vertex{Vector3f(size, size, size),		Vector3f(0.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
+			Vertex{Vector3f(size, -size, size),		Vector3f(1.0f, 1.0f, 1.0f),		/*Vector3f(1.0f, 1.0f, 1.0f)*/},
 		};
 
 		//std::array<Vertex, 3> vertices =
@@ -442,6 +457,7 @@ namespace StrikeEngine
 		const u32 ibufByteSize = (u32)indices.size() * sizeof(u32);
 
 		m_boxGeo = std::make_unique<MeshGeometry>();
+		m_boxGeo->SetName("boxGeo");
 
 		StrikeEngine::D3D::Utils::throwIfFailed(D3DCreateBlob(vbufByteSize, &m_boxGeo->vertexBufferCPU));
 		CopyMemory(m_boxGeo->vertexBufferCPU->GetBufferPointer(), vertices.data(), vbufByteSize);

@@ -4,6 +4,8 @@
 #include "Renderer/StrikeRenderer.hpp"
 #include <dxgi1_4.h>
 
+#define DBG_RENDERDOC 1
+
 StrikeEngine::Device::Device()
 {
 	createDevice();
@@ -36,8 +38,10 @@ void StrikeEngine::Device::createDevice()
 		debugController->EnableDebugLayer();
 	}
 
+#if !DBG_RENDERDOC
 	// Enable GBV (GPU Based Validation)
 	enableDebugValidationLayer();
+#endif // DBG_RENDERDOC
 #endif //DEBUG
 
 	D3D::Utils::throwIfFailed(CreateDXGIFactory1(__uuidof(IDXGIFactory5), (void**)&m_dxgiFactory));
